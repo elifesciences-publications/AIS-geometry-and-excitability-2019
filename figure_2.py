@@ -6,7 +6,7 @@ Input resistances are calculated.
 The neuron is a sphere + a long cylindrical axon. The diameter of the sphere is varied.
 
 '''
-
+from __future__ import print_function
 from brian2 import *
 from joblib import Parallel, delayed
 import matplotlib.patches as patches

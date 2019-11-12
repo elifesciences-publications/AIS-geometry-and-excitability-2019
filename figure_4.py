@@ -4,7 +4,7 @@ A script to plot the relationship between the AIS diameter and the soma diameter
 Measures of AIS diameter come from electron microscopy studies. AIS diameter is the 
 
 '''
-
+from __future__ import print_function
 from brian2 import *
 from scipy.stats import linregress
 from numpy.random import choice

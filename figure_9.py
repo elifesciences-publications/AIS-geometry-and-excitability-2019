@@ -7,7 +7,7 @@ Effect of the middle position of the AIS on the somatic threshold for spike init
 The total Na conductance is constant in the AIS and the middle AIS position and length are varied.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from joblib import Parallel, delayed
 from scipy.optimize import fsolve

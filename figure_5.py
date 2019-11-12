@@ -5,6 +5,7 @@ Presentation of a simple biophysical model of spike initiation in the AIS and ho
 
 '''
 
+from __future__ import print_function
 from brian2 import *
 from shared.models import params_model_description, model_Na_Kv1
 from shared.analysis.trace_analysis import *

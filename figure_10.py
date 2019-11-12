@@ -6,7 +6,7 @@ A figure to summarize the logarithmic dependence of the threshold on the
 Na conductance density, AIS length and middle position.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from shared import params_all, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold
 from scipy import stats
@@ -14,7 +14,7 @@ from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from matplotlib.colors import ListedColormap
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 n = 4

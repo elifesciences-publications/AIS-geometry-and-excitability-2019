@@ -6,14 +6,14 @@ AIS geometry and excitability, section 3: "Non-sodium axonal currents" (Figure 1
 Extended AIS with Kv7 channels in the distal half of the AIS.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from shared import params_all, model_Na_Kv1_Kv7, measure_current_threshold, measure_voltage_threshold
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms

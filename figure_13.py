@@ -1,11 +1,9 @@
-
-
 """
 AIS geometry and excitability, "Methods" (figure 13).
 
 Exact solution of the bifurcation problem. 
 """
-
+from __future__ import print_function
 from brian2 import *
 from scipy.optimize import fsolve
 from shared import *
