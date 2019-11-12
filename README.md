@@ -30,7 +30,7 @@ the somatic voltage threshold; as opposed to axonal threshold or somatic current
 
     figure_5.py
     
-We present a simple biophysical model of spike initiation in the AIS, and illustrate how to use the model.
+We present a simple biophysical model of spike initiation in the AIS, and illustrate how to use our biophysical model.
 
 ### How to measure excitability?
 
@@ -75,11 +75,11 @@ It is possbile to either run the simulations, either only plot the figure based 
 
 ### Non-sodium axonal currents
     
-We show that if strong hyperpolarizing current is present a the AIS, the trheshold can decrease when the AIS is shifted awway from the soma.
+We show that if strong hyperpolarizing current is present a the AIS, the threshold can decrease when the AIS is shifted awway from the soma.
 
     figure_11.py
     
-We measure the voltage threshold in the biophysical model when a hyeprpolarizing conductance (Kv7-like conductance) 
+We measure the voltage threshold in the biophysical model when a hyperpolarizing conductance (Kv7-like conductance) 
 is added in the distal half of the AIS.
 
     figure_12.py
