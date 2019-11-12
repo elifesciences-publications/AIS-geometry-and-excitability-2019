@@ -27,7 +27,7 @@ n= 5
 m= 9
 
 ### Divers functions
-# THeory: threshold formulas
+# Theory: threshold formulas
 # Point AIS
 def Threshold_point_AIS(x):
     vth = params.Va - params.Ka - params.Ka*log(x*ra*params.Gna*(params.ENa-params.Va)/params.Ka)
@@ -90,11 +90,11 @@ else: # runnning the simulations
             print (round(x_star, 2)*um, length, start, end)
             
             # current threshold
-            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot)
+            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot, morpho=morpho)
             i_rheo = measure_current_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, pulse_length = pulse_length)  
             
             # voltage threshold
-            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot)
+            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot, morpho=morpho)
             vs, va, _, _ = measure_voltage_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, i_rheo = i_rheo, pulse_length = pulse_length) 
             print ('threshold:', vs)
             res = vs
