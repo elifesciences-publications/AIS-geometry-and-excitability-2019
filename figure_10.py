@@ -14,7 +14,7 @@ from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from matplotlib.colors import ListedColormap
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 n = 4
@@ -176,11 +176,12 @@ slope_gna_proxshort, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/m
 slope_gna_distshort, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[1,0,:]) 
 slope_gna_proxlong, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[0,1,:]) 
 slope_gna_distlong, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[1,1,:]) 
+print ('Slopes:')
 print ('Panel A')
-print ('light blue:', 'x*=', ais_geom[0,0] + ais_geom[0,1]/2, 'L=',  ais_geom[0,1], 'ka=', slope_gna_proxshort )
-print ('light orange:', 'x*=', ais_geom[1,0] + ais_geom[1,1]/2, 'L=',  ais_geom[1,1], 'ka=', slope_gna_distshort )
-print ('dark blue: ', 'x*=', ais_geom[2,0] + ais_geom[2,1]/2, 'L=',  ais_geom[2,1], 'ka=', slope_gna_proxlong)
-print ('dark orange: ',  'x*=', ais_geom[3,0] + ais_geom[3,1]/2, 'L=',  ais_geom[3,1],'ka=', slope_gna_distlong)
+print ('light blue:', 'x1/2=', ais_geom[0,0] + ais_geom[0,1]/2, 'L=',  ais_geom[0,1], 'ka=', round(slope_gna_proxshort, 2), 'mV' )
+print ('light orange:', 'x1/2=', ais_geom[1,0] + ais_geom[1,1]/2, 'L=',  ais_geom[1,1], 'ka=', round(slope_gna_distshort, 2), 'mV' )
+print ('dark blue: ', 'x1/2=', ais_geom[2,0] + ais_geom[2,1]/2, 'L=',  ais_geom[2,1], 'ka=', round(slope_gna_proxlong, 2), 'mV')
+print ('dark orange: ',  'x1/2=', ais_geom[3,0] + ais_geom[3,1]/2, 'L=',  ais_geom[3,1],'ka=', round(slope_gna_distlong, 2), 'mV')
 
 semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[0,0,:], color=colors[2]) 
 semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[1,0,:], color=colors[1]) 
@@ -203,10 +204,10 @@ slope_mid_shorthigh, _, _, _, _ = stats.linregress(log(x_mids_vals[1:]), thresho
 slope_mid_longlow, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longlow[3:])  
 slope_mid_longhigh, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longhigh[3:]) 
 print ('Panel B')
-print ('light blue: gna = 3000', 'L=', lengths[1], 'ka=', slope_mid_shortlow)
-print ('light orange: gna = 3000', 'L=', lengths[3], 'ka=', slope_mid_longlow)
-print ('dark blue: gna = 5000', 'L=', lengths[1],'ka=', slope_mid_shorthigh)
-print ('dark orange: gna = 5000', 'L=', lengths[3],'ka=', slope_mid_longhigh)
+print ('light blue: gna = 3000', 'L=', lengths[1], 'ka=', round(slope_mid_shortlow, 2), 'mV')
+print ('light orange: gna = 3000', 'L=', lengths[3], 'ka=', round(slope_mid_longlow, 2), 'mV')
+print ('dark blue: gna = 5000', 'L=', lengths[1],'ka=', round(slope_mid_shorthigh, 2), 'mV')
+print ('dark orange: gna = 5000', 'L=', lengths[3],'ka=', round(slope_mid_longhigh, 2), 'mV')
 
 semilogx(x_mids_vals, thresholds_mid_shortlow, color=colors[2])
 semilogx(x_mids_vals, thresholds_mid_longlow, color=colors[1])
@@ -229,10 +230,10 @@ slope_len_proxhigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_le
 slope_len_disthigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_disthigh)  
 slope_len_proxlow, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_proxlow)
 print ('Panel C')
-print ('light blue: gna = 3000', 'x=', x_mids_vals[3], 'ka=', slope_len_proxlow)
-print ('light orange: gna = 5000', 'x=', x_mids_vals[3],'ka=', slope_len_proxhigh)
-print ('dark blue: gna = 3000', 'x=', x_mids_vals[5], 'ka=', slope_len_distlow)
-print ('dark orange: gna = 5000', 'x=', x_mids_vals[5], 'ka=', slope_len_disthigh)
+print ('light blue: gna = 3000', 'x1/2=', x_mids_vals[3], 'ka=', round(slope_len_proxlow, 2), 'mV')
+print ('light orange: gna = 5000', 'x1/2=', x_mids_vals[3],'ka=', round(slope_len_proxhigh, 2), 'mV')
+print ('dark blue: gna = 3000', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_distlow, 2), 'mV')
+print ('dark orange: gna = 5000', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_disthigh, 2), 'mV')
 
 semilogx(lengths/um, thresholds_len_proxhigh, color=colors[1])
 semilogx(lengths/um, thresholds_len_proxlow, color=colors[2])
@@ -251,7 +252,7 @@ subplots_adjust(top=0.88, bottom=0.29, wspace=0.3)
 
 show()
 
-print ('Distal shift of a 40 um long AIS with high g (x* from 25 to 30::', thresholds_mid_longhigh[5] - thresholds_mid_longhigh[4])
+print ('Distal shift of a 40 um long AIS with high g (x1/2 from 25 to 30):', round(thresholds_mid_longhigh[5] - thresholds_mid_longhigh[4], 2), 'mV')
 
 
 

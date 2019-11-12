@@ -40,7 +40,8 @@ for i,j in zip(start,end):
             
 current_example = min_current
 
-print (current)
+print ("EXAMPLE CELL:")
+print ("Smallest positive current pulse at the axonal bleb:", current, 'nA')
 
 # Resting potential calculated just before the pulse (not used)
 vs_rest = median(vs[:n_before])
@@ -55,8 +56,9 @@ dt = 0.02 # in ms
 
 n_before = 50*5 # number of time steps before the pulse (= 50 kHz * duration in ms)
 
+print ('INPUT RESISTANCE vs DISTANCE')
 for distance,t,Vs,Va,Is,Ia in load_all_files():
-    print ("Distance ",distance,"um")
+    print ("Distance from soma to axonal bleb: ",distance,"um")
     # Find places where there's an axonal but not somatic current pulse
     i = 1*((abs(Ia)>0.008) & (abs(Is)<0.008))
     start = where(diff(i) == 1)[0] +1
@@ -82,7 +84,7 @@ for distance,t,Vs,Va,Is,Ia in load_all_files():
         vs_pos = vss[i]
         va_pos = vaa[i]
 
-        print("Current=",current_pos)
+        print("Current pulse injected at the bleb:", current_pos, 'nA')
 
     except ValueError:
         print ("No current pulse found")
@@ -97,14 +99,16 @@ for distance,t,Vs,Va,Is,Ia in load_all_files():
     R_input_short = (median(va_pos[n_before+10:n_before+20])-va_rest)/current_pos
     Rs_input_short = (median(vs_pos[n_before+10:n_before+20])-vs_rest)/current_pos
     R_axial = R_input_short - Rs_input_short
-    print ("R=",R_input_short, Rs_input_short,R_axial)
+    print ("Input resistance at axonal bleb:", R_input_short)
+    print ("Input resistance at soma:", Rs_input_short) 
+    print ("Axial resistance:", R_axial)
     distances.append(distance)
     Ra_short.append(R_input_short)
     Rs_short.append(Rs_input_short)
 
 # Print sorted list
-for d,Rp, Rn in sorted(zip(array(distances),Ra_short,Rs_short)):
-    print (d,'um:',Rp, Rn)
+#for d,Rp, Rn in sorted(zip(array(distances),Ra_short,Rs_short)):
+    #print (d,'um:',Rp, Rn)
 
 print ("Number of recordings used in the analysis:", len(Ra_short))
 

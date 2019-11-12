@@ -15,7 +15,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from shared.models import model_Na_Kv1, params_all
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 m = 5

@@ -13,7 +13,7 @@ from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
@@ -110,7 +110,7 @@ ax1.legend(frameon=False, fontsize=8)
 
 ax1.text(-175, -70,'A', fontsize=14, weight='bold')
 
-print ('panel A: x = %0.1f' %starts_label[3])
+print ('panel A: AIS starts at %0.1f' %starts_label[3], 'um')
 
 # Panel B: threshold at the soma and teh AIS vs injected current
 ax4 = subplot(222)
@@ -124,7 +124,7 @@ ax4.set_ylabel('Threshold (mV)')
 
 ax4.text(-160, -45,'B', fontsize=14, weight='bold')
 
-print ('panel B: x = %0.1f' %starts_label[3])
+print ('panel B: AIS starts at %0.1f' %starts_label[3], 'um')
 
 # Panel C: difference in threshold vs difference in resting membrane potential
 ax3 = subplot(223)

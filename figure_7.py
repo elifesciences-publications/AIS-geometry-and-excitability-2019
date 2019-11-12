@@ -21,7 +21,7 @@ from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
@@ -112,8 +112,12 @@ for k in range(n):
     slopes_gna_bio[k] = sl_gna_bio
 
 print ('Slopes:')
-print ('SI model VC:', 'delta:', slopes_x_si, 'G:', slopes_gna_si)
-print ('BIO model CC:', 'delta:', slopes_x_bio, 'G:', slopes_gna_bio)
+print ('Spike initiation model in voltage-clamp:')
+print('Threshold vs delta for different GNa:', slopes_x_si)
+print ('Threshold vs GNa for different delta:', slopes_gna_si)
+print ('Biophysical model in current-clamp:')
+print('Threshold vs delta for different GNa:', slopes_x_bio)
+print ('Threshold vs GNa for different delta:', slopes_gna_bio)
 
 ### Plots
 

@@ -14,7 +14,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from shared.analysis import measure_current_threshold_no_VC, measure_voltage_threshold_no_VC, measure_input_resistance
 from shared.models import params_model_description, model_Na_Kv1
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 n=4 

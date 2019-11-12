@@ -141,13 +141,14 @@ else: # runnning the simulations
     savez('figure_9', starts/um, lengths/um, x_mids_vals, thresholds_pred, thresholds_bio)
     
 # Bifurcation condition: we search for the AIS position below which there is no bifuraction, for a fixed Gna
+print ('THEORY')
 x_pt = linspace(0., 50., 1000)*um
 
 for i in range(len(x_pt)):
     RaGNa = ra*x_pt[i] * params.Gna
     if RaGNa > 1:
-        print ('Minimal x1/2 with bifurcation:', x_pt[i],  RaGNa)
-        print ('no bifurcation:', x_pt[i-1])
+        print ('Minimal x1/2 with bifurcation:', x_pt[i])
+        print ('Maximal x1/2 without bifurcation:', x_pt[i-1])
         x_mid_min = x_pt[i]
         break
             
@@ -174,8 +175,8 @@ for i in range(l):
     thresholds_pt[i] = Threshold_point_AIS(x[i])
     thresholds_ext[i] = Threshold_AIS_starts_at_soma(x[i]) 
     thresholds_ext_mid[i] = Threshold_point_AIS(x[i]/2)
-print ('Threshold difference between point AIS at L and extended AIS that starts at the soma and ends at distance L:', (thresholds_ext[i] - thresholds_pt[i])*1e3)
-print ('Threshold difference between extended AIS that starts at the soma and ends at distance L and its equivalent point AIS in L/2:', (thresholds_ext[i] - thresholds_ext_mid[i])*1e3)
+print ('Threshold difference between point AIS at L and extended AIS that starts at the soma and ends at distance L:', (thresholds_ext[i] - thresholds_pt[i])*1e3, 'mV')
+print ('Threshold difference between extended AIS that starts at the soma and ends at distance L and its equivalent point AIS in L/2:', (thresholds_ext[i] - thresholds_ext_mid[i])*1e3, 'mV')
 
 ax1 = subplot2grid((3, 2), (0, 0), colspan=2)
 ax1.plot(x[2*x_min:]/um, thresholds_pt[2*x_min:]/mV, 'k', label='Point AIS in L')
