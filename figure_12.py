@@ -6,14 +6,14 @@ Effect of a hyperpolarizing current on the resting membrane potential and the vo
 in a point AIS. 
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from shared import params_all, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold, calculate_resting_state
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms

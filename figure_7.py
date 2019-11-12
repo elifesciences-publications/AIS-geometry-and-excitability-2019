@@ -11,7 +11,7 @@ The threshold measured:
 We show that the threshold goes as log(x gna).
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from shared.models import model_spike_initiation,  model_Na_Kv1, params_all
 from shared.analysis import measure_threshold_in_vc, measure_current_threshold, measure_voltage_threshold
@@ -21,7 +21,7 @@ from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms

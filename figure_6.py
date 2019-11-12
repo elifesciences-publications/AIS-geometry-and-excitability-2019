@@ -6,7 +6,7 @@ We compare the rheobase with the somatic voltage threshold and
 how they vary with the leak conductance at the soma, the total Na conductance at the AIS and the amount of current injected at the AIS.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from joblib import Parallel, delayed
 from matplotlib.collections import LineCollection
@@ -14,7 +14,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from shared.analysis import measure_current_threshold_no_VC, measure_voltage_threshold_no_VC, measure_input_resistance
 from shared.models import params_model_description, model_Na_Kv1
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 n=4 

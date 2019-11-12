@@ -7,7 +7,7 @@ We look at the threshold as a function of the AIS length and position in the bio
 for a fixed Na conductance density at the AIS.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from scipy import stats
 from joblib import Parallel, delayed
@@ -15,7 +15,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from shared.models import model_Na_Kv1, params_all
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 m = 5

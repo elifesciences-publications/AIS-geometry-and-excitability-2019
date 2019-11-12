@@ -7,7 +7,7 @@ Effect of the middle position of the AIS on the somatic threshold for spike init
 The total Na conductance is constant in the AIS and the middle AIS position and length are varied.
 
 """
-
+from __future__ import print_function
 from brian2 import *
 from joblib import Parallel, delayed
 from scipy.optimize import fsolve
@@ -16,7 +16,7 @@ from matplotlib.colors import ListedColormap
 from shared.models import model_Na_Kv1, params_all
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
@@ -202,9 +202,9 @@ data_pred = thresholds_pred
 data_bio = thresholds_bio
 
 n_pred = len(data_pred)
-levels_pred = arange(int(nanmin(data_pred[n_pred-1]))-1,int(nanmax(data_pred[1])), 2)
+levels_pred = arange(int(nanmin(data_pred[n_pred-1]))-1,int(nanmax(data_pred[1]))+1, 2)
 n_bio = len(data_bio)
-levels_bio = arange(int(nanmin(data_bio[n_pred-1]))-1,int(nanmax(data_bio[1])), 2)
+levels_bio = arange(int(nanmin(data_bio[n_pred-1]))-2,int(nanmax(data_bio[1]))+1, 2)
 
 cmap_pred= plt.cm.get_cmap(newcmp, levels_pred+1)
 cmap_bio= plt.cm.get_cmap(newcmp, levels_bio+1)
