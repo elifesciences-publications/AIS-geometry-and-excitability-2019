@@ -1,5 +1,3 @@
-
-
 '''
 Fitting the activation curve of Kv1 channels from Kole et al, Neuron 2007. 
 Data points where digitized from figure 2C. 
