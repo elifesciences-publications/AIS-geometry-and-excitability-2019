@@ -16,7 +16,7 @@ from matplotlib.colors import ListedColormap
 from shared.models import model_Na_Kv1, params_all
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms

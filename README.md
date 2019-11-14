@@ -9,6 +9,11 @@ In addition to standard scientific packages (scipy, matplotlib), this code requi
 * joblib
 * [Brian 2](http://briansimulator.org)
 
+For Figure 3, electrophysiological data from Hu and Bean (2018)
+(DOI: 10.5281/zenodo.3539297) must be
+[downloaded](https://zenodo.org/record/3539297#.Xc0WbjJKhBw) into the folder
+`shared/resistive_coupling/hu-bean-2018`.
+
 ## Passive properties
 
 * `figure_2.py`: We show in simulations the difference between the small soma situation (=sealed end) and
