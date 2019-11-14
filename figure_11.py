@@ -37,7 +37,7 @@ if only_plotting: # loading data
 else: # running simulations
     # A function to measure the threshold as a function of AIS position, length and Kv7 conductance at the AIS
     def BIO_model_in_CC_Kv7(resting_vm, ais_start, ais_end, gna_tot, gm_tot):
-        params = params_Kv7
+        params = params_all
         defaultclock.dt = 0.005*ms
         pulse_length = 50.*ms
         

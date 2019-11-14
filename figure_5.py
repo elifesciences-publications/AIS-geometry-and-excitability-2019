@@ -131,7 +131,7 @@ ax2.plot(v/mV, ninf8,'darkorange',  label='$n_\infty^8$')
 ax2.set_xlabel('V (mV)')#, fontsize=14)
 ax2.set_xlim(-100,20)
 ax2.set_ylim(-0.05,1.05)
-ax2.legend(frameon=False, fontsize=8)
+ax2.legend(loc='lower left', frameon=False, fontsize=8)
 ax2.text(-140,1.05,'A', fontsize=14, weight='bold')
 
 # Panel C: AP at AIS end and soma
@@ -155,7 +155,7 @@ ax4.set_xlim(-75, 50)
 ax4.set_ylim(-200,2500)
 ax4.set_ylabel('dV/dt (V/s)')
 ax4.set_xlabel('V (mV)')
-ax4.text(-115, 2500,'D', fontsize=14, weight='bold')
+ax4.text(-117, 2500,'D', fontsize=14, weight='bold')
 
 # Panel E: Na and Kv1 currents at AIS
 ax5 = subplot(427)
