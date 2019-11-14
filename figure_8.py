@@ -25,7 +25,7 @@ params = params_model_description #params_all
 ### SIMULATIONS in the biophysical model
 
 if only_plotting: # loading data
-    data = load('figure_8_bis.npz')
+    data = load('figure_8.npz')
     starts = data['arr_0']*um # AIS start positions
     lengths = data['arr_1']*um # AIS length
     thresholds = data['arr_2']*mV
@@ -59,7 +59,7 @@ else: # running simulations
     thresholds = thresholds.reshape((m,m))*1e3
     
     # Save the data in an npz file
-    savez('figure_8_bis', starts/um, lengths/um, thresholds/mV)
+    savez('figure_8', starts/um, lengths/um, thresholds/mV)
         
 ### THEORY
 ra = 4*params.Ri/(pi*params.axon_diam**2)

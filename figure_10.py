@@ -8,7 +8,7 @@ Na conductance density, AIS length and middle position.
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_all, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold
+from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold
 from scipy import stats
 from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
@@ -21,7 +21,7 @@ n = 4
 m = 3
 p = 4
 defaultclock.dt = 0.005*ms
-params = params_all
+params = params_model_description #params_all
 ra = 4.*params.Ri/(pi*params.axon_diam**2)
 
 ### SIMULATIONS
@@ -47,7 +47,6 @@ else: # running simulations
     # A function to measure threshold vs Na density for different AIS middle position and length
     def BIO_model_in_CC_threshold_density(ais_start, ais_end, gna_dens):
         defaultclock.dt = 0.005*ms
-        params = params_all
         resting_vm = -75.*mV
         pulse_length = 50.*ms
         print (ais_start, ais_end)
@@ -62,7 +61,7 @@ else: # running simulations
         
         return vs
     
-    print ('measuring thresholds for varying Na densities' )
+    print ('Measuring thresholds for varying Na densities' )
     gna_densities = linspace(3000., 6000., n) * (siemens/meter**2)
     ais_geom = [[10.,20.], [0.,40.], [20.,20.],[10.,40.]]*um 
     
@@ -77,7 +76,6 @@ else: # running simulations
     # A function to measure threshold vs length and middle position for different Na density 
     def BIO_model_threshold_in_CC(x_star, length, gna_dens):
         defaultclock.dt = 0.005*ms
-        params = params_all 
         resting_vm = -75.*mV
         pulse_length = 50.*ms
         
@@ -92,11 +90,12 @@ else: # running simulations
             # current threshold
             neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=True, gna_density = gna_dens)
             i_rheo = measure_current_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, pulse_length = pulse_length)  
+            print ('Rheobase:', i_rheo)
             
             # voltage threshold
             neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=True, gna_density = gna_dens)
             vs, va, _, _ = measure_voltage_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, i_rheo = i_rheo, pulse_length = pulse_length) 
-            print ('threshold:', vs)
+            print ('Threshold:', vs)
             res = vs
         else: # bottom right triangle
             res = nan
@@ -124,7 +123,7 @@ else: # running simulations
     # Measuring the threshold with low Na density
     print ('measuring threshold for varying AIS length and middle position with low Na density')
     if __name__ == '__main__':
-        threshold_low = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(x_mid, length, 3000. * (siemens/meter**2)) for x_mid in x_mids_vals for length in lengths)
+        threshold_low = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(x_mid, length, 3500. * (siemens/meter**2)) for x_mid in x_mids_vals for length in lengths)
     
     threshold_low = array(threshold_low)
     threshold_low = threshold_low.reshape((len(x_mids_vals),p))*1e3
@@ -204,8 +203,8 @@ slope_mid_shorthigh, _, _, _, _ = stats.linregress(log(x_mids_vals[1:]), thresho
 slope_mid_longlow, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longlow[3:])  
 slope_mid_longhigh, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longhigh[3:]) 
 print ('Panel B')
-print ('light blue: gna = 3000', 'L=', lengths[1], 'ka=', round(slope_mid_shortlow, 2), 'mV')
-print ('light orange: gna = 3000', 'L=', lengths[3], 'ka=', round(slope_mid_longlow, 2), 'mV')
+print ('light blue: gna = 3500', 'L=', lengths[1], 'ka=', round(slope_mid_shortlow, 2), 'mV')
+print ('light orange: gna = 3500', 'L=', lengths[3], 'ka=', round(slope_mid_longlow, 2), 'mV')
 print ('dark blue: gna = 5000', 'L=', lengths[1],'ka=', round(slope_mid_shorthigh, 2), 'mV')
 print ('dark orange: gna = 5000', 'L=', lengths[3],'ka=', round(slope_mid_longhigh, 2), 'mV')
 
@@ -230,9 +229,9 @@ slope_len_proxhigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_le
 slope_len_disthigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_disthigh)  
 slope_len_proxlow, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_proxlow)
 print ('Panel C')
-print ('light blue: gna = 3000', 'x1/2=', x_mids_vals[3], 'ka=', round(slope_len_proxlow, 2), 'mV')
+print ('light blue: gna = 3500', 'x1/2=', x_mids_vals[3], 'ka=', round(slope_len_proxlow, 2), 'mV')
 print ('light orange: gna = 5000', 'x1/2=', x_mids_vals[3],'ka=', round(slope_len_proxhigh, 2), 'mV')
-print ('dark blue: gna = 3000', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_distlow, 2), 'mV')
+print ('dark blue: gna = 3500', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_distlow, 2), 'mV')
 print ('dark orange: gna = 5000', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_disthigh, 2), 'mV')
 
 semilogx(lengths/um, thresholds_len_proxhigh, color=colors[1])

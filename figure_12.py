@@ -8,18 +8,18 @@ in a point AIS.
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_all, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold, calculate_resting_state
+from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold, calculate_resting_state
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
 n = 5
 m = 5
-params = params_all
+params = params_model_description #params_all
 ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
 starts = linspace(10., 30., n)*um # AIS start positions
 GNa = 500.*nS # total NA conductance in the AIS
@@ -38,7 +38,6 @@ if only_plotting: # loading data
 else: # running the simulations
     # A function to measure the threshold at the soma and at the AIS when a hyperpolarizing current is injected at the AIS
     def BIO_model_in_CC_Kv(resting_vm, ais_start, ais_end, i_inj, gna_tot):
-        params = params_all
         defaultclock.dt = 0.005*ms
         pulse_length = 50.*ms
 
@@ -46,11 +45,13 @@ else: # running the simulations
         neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot)
         i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
                                            ais_end=ais_end, pulse_length=pulse_length, i_inj=i_inj)  
+        print ('Rheobase:', i_rheo)
             
         # voltage threshold
         neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot = gna_tot, density=False)
         vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
                                            ais_end=ais_end, i_rheo = i_rheo, pulse_length=pulse_length, i_inj=i_inj)
+        print('Thresholds: soma:', vs, ', AIS:', va)
         
         neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot=gna_tot,  density=False)
         t, v_soma, _, v_ais = calculate_resting_state(neuron, ais_start, ais_end, i_inj)

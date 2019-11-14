@@ -33,7 +33,7 @@ gnas = linspace (200, 600, n)*nS # total Na conductances
 ### SIMULATIONS
 
 if only_plotting: # loading data
-    data = load('figure_7_bis.npz')
+    data = load('figure_7.npz')
     starts = data['arr_0']*um
     gnas = data['arr_1']*nS
     thresholds_si = data['arr_2']*mV
@@ -82,7 +82,7 @@ else: # running simulations
         thresholds_bio = thresholds_bio.reshape((n,n))*1e3
     
     # Save the data in an npz file
-    savez('figure_7_bis', starts/um, gnas/nS, thresholds_si/mV, thresholds_bio/mV)
+    savez('figure_7', starts/um, gnas/nS, thresholds_si/mV, thresholds_bio/mV)
     
 ### THEORY
     
@@ -208,12 +208,12 @@ ax22.tick_params(
     labelleft=False) # labels along the bottom edge are off
 ax22.set_ylim(-75,-50)
 
-ax22.text(130, -42,'D', fontsize=14, weight='bold')
+ax22.text(130, -52,'D', fontsize=14, weight='bold')
 
 # Panel E: BIO model: threshold vs AIS start position
 
 ax3 = subplot(325)
-ax3.text(24.5   , -47,'Biophysical model', fontsize=12)
+ax3.text(24.5   , -37,'Biophysical model', fontsize=12)
 
 for k in range(n):
     semilogx(starts/um, thresholds_bio[:,k], color=colors[k], label='k=%.2f mV' %slopes_x_bio[k])
@@ -234,7 +234,8 @@ ax32.set_xlabel('$G$ (nS)') #, fontsize=14)
 ax32.set_ylim(-75,-40)
 ax32.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax32.xaxis.set_minor_formatter(ScalarFormatter())
-ax32.text(130, -52,'F', fontsize=14, weight='bold')
+
+ax32.text(130, -42,'F', fontsize=14, weight='bold')
 
 subplots_adjust(hspace=0.35, wspace=0.4)
 

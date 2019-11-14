@@ -16,7 +16,7 @@ from matplotlib.colors import ListedColormap
 from shared.models import model_Na_Kv1, params_model_description
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
@@ -75,7 +75,6 @@ else: # runnning the simulations
     # A function to measure the trheshold in the biophysical model, for various AIS middle position and length
     def BIO_model_threshold_in_CC(x_star, length, gna_tot):
         defaultclock.dt = 0.005*ms
-        #params = params_all 
         resting_vm = -75.*mV
         pulse_length = 50.*ms
         
@@ -138,7 +137,7 @@ else: # runnning the simulations
                 thresholds_pred[i,j] = nan
     
     #Save the data
-    savez('figure_9_bis', starts/um, lengths/um, x_mids_vals, thresholds_pred, thresholds_bio)
+    savez('figure_9', starts/um, lengths/um, x_mids_vals, thresholds_pred, thresholds_bio)
     
 # Bifurcation condition: we search for the AIS position below which there is no bifuraction, for a fixed Gna
 print ('THEORY')
@@ -205,7 +204,7 @@ data_bio = thresholds_bio
 n_pred = len(data_pred)
 levels_pred = arange(int(nanmin(data_pred[n_pred-1]))-1,int(nanmax(data_pred[1]))+1, 2)
 n_bio = len(data_bio)
-levels_bio = arange(int(nanmin(data_bio[n_pred-1]))-2,int(nanmax(data_bio[1]))+1, 2)
+levels_bio = arange(int(nanmin(data_bio[n_pred-1]))-1,int(nanmax(data_bio[1]))+1, 2)
 
 cmap_pred= plt.cm.get_cmap(newcmp, levels_pred+1)
 cmap_bio= plt.cm.get_cmap(newcmp, levels_bio+1)

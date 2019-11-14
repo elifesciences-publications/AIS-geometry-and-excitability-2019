@@ -14,7 +14,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from shared.analysis import measure_current_threshold_no_VC, measure_voltage_threshold_no_VC, measure_input_resistance
 from shared.models import params_model_description, model_Na_Kv1
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 n=4 
@@ -35,10 +35,12 @@ def measure_different_thresholds(gna_ais, i_inj, gL_soma):
     # current threshold
     neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk, gL_soma = gL_soma)
     i_rheo = measure_current_threshold_no_VC(params, neuron, resting_vm, start, end, pulse_length = 50.*ms, i_inj = i_inj, plot_v = False)  
+    print ('Current threshold:', i_rheo)
     
     # voltage threshold
     neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk, gL_soma = gL_soma)
     vs, va, _, _, v0, v0_ais= measure_voltage_threshold_no_VC(params, neuron, resting_vm,start, end, i_rheo = i_rheo, pulse_length = 50.*ms, i_inj = i_inj) 
+    print ('Threshold:', vs)
     
     # input resistance
     neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk)
@@ -112,7 +114,7 @@ else: # running simulations
     v0_ais_hyp = [results_hyp[i][5] for i in range(n)]# resting membrane potential at the AIS
     
     # Save the data in an npz file
-    savez('figure_6', gL_somas/(siemens/meter**2), gnas/nS, hyp_curr/nA, current_thresholds_gl/nA, current_thresholds_gna/nA, current_thresholds_hyp/nA,\
+    savez('figure_6_bis', gL_somas/(siemens/meter**2), gnas/nS, hyp_curr/nA, current_thresholds_gl/nA, current_thresholds_gna/nA, current_thresholds_hyp/nA,\
                   v_thresholds_gl/mV, v_thresholds_gna/mV, v_thresholds_hyp/mV,\
                   v_thresholds_ais_hyp/mV, v0_soma_gl/mV, v0_ais_gl/mV, v0_soma_gna/mV, v0_ais_gna/mV, v0_soma_hyp/mV, v0_ais_hyp/mV)
 

@@ -8,18 +8,19 @@ Extended AIS with Kv7 channels in the distal half of the AIS.
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_all, model_Na_Kv1_Kv7, measure_current_threshold, measure_voltage_threshold
+from shared import params_model_description, model_Na_Kv1_Kv7, measure_current_threshold, measure_voltage_threshold
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
+from scipy import stats
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
 
 n=7
-params = params_all
+params = params_model_description#params_all
 ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
 length = 30.*um # AIS length
 GNa = 500.*nS # total Na conductance at the AIS
@@ -33,22 +34,22 @@ if only_plotting: # loading data
     thresholds_soma = data['arr_2']*mV
     thresholds_ais = data['arr_3']*mV
 
-    x_mids = starts+length/2 # AIS middle position
 else: # running simulations
     # A function to measure the threshold as a function of AIS position, length and Kv7 conductance at the AIS
     def BIO_model_in_CC_Kv7(resting_vm, ais_start, ais_end, gna_tot, gm_tot):
-        params = params_all
         defaultclock.dt = 0.005*ms
         pulse_length = 50.*ms
         
         # current threshold
         neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
         i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,pulse_length = pulse_length)  
+        print ('Rheobase:', i_rheo)
             
         # voltage threshold
         neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
         vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,\
                                                  i_rheo = i_rheo, pulse_length = pulse_length)
+        print ('Thresholds: soma:', vs, ', AIS:', va)
         
         return i_rheo, vs, va
 
@@ -73,7 +74,13 @@ else: # running simulations
     savez('figure_11', starts/um, gms/nS, thresholds_soma/mV, thresholds_ais/mV)
     
 ### Plots
-    
+x_mids = starts+length/2 # AIS middle position
+gms_label = gms/(pi*(length/2)*params.axon_diam) / (siemens/meter**2) 
+
+for i in range(len(gms)):
+    slope, _, _, _, _ = stats.linregress(log(x_mids/um), thresholds_ais[:,i])
+    print ('Kv7 density:', gms_label[i], ', slope:', slope)
+
 # Custom colormap
 top = get_cmap('Oranges_r', 128)
 bottom = get_cmap('Blues', 128)
@@ -82,8 +89,6 @@ newcolors = vstack((top(linspace(0.5, 1, 128)),
 newcmp = ListedColormap(newcolors, name='OrangeBlue')
 cmap = plt.get_cmap(newcmp)
 colors = [cmap(i) for i in np.linspace(0, 1, n/2+1)]
-
-gms_label = gms/(pi*(length/2)*params.axon_diam) / (siemens/meter**2) 
 
 # Figure
 fig_kv7 = figure(2, figsize=(6,3))
