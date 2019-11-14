@@ -13,16 +13,15 @@ from joblib import Parallel, delayed
 from scipy.optimize import fsolve
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from matplotlib.colors import ListedColormap
-from shared.models import model_Na_Kv1, params_all
+from shared.models import model_Na_Kv1, params_model_description
 from shared.analysis import measure_current_threshold, measure_voltage_threshold
 
-only_plotting = True # to plot the figure without running the simulations
+only_plotting = False # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
-params = params_all
-axon_diam = 1.*um
-ra = 4*params.Ri/(pi*axon_diam**2)
+params = params_model_description #params_all
+ra = 4*params.Ri/(pi*params.axon_diam**2)
 n= 5
 m= 9
 
@@ -76,7 +75,7 @@ else: # runnning the simulations
     # A function to measure the trheshold in the biophysical model, for various AIS middle position and length
     def BIO_model_threshold_in_CC(x_star, length, gna_tot):
         defaultclock.dt = 0.005*ms
-        params = params_all 
+        #params = params_all 
         resting_vm = -75.*mV
         pulse_length = 50.*ms
         
@@ -87,16 +86,17 @@ else: # runnning the simulations
         
         # Removing impossible geometries: the length can not be bigger than two times the middle position
         if length/2 <= round(x_star, 2)*um:
-            print (round(x_star, 2)*um, length, start, end)
+            print ('x1/2:', round(x_star, 2)*um, 'AIS length:', length, 'AIS start:', start, 'AIS end:', end)
             
             # current threshold
             neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot, morpho=morpho)
             i_rheo = measure_current_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, pulse_length = pulse_length)  
+            print ('Rheobase:', i_rheo)
             
             # voltage threshold
             neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=False, gna_tot=gna_tot, morpho=morpho)
             vs, va, _, _ = measure_voltage_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, i_rheo = i_rheo, pulse_length = pulse_length) 
-            print ('threshold:', vs)
+            print ('Threshold:', vs)
             res = vs
         else: # bottom right triangle
             res = nan
@@ -138,7 +138,7 @@ else: # runnning the simulations
                 thresholds_pred[i,j] = nan
     
     #Save the data
-    savez('figure_9', starts/um, lengths/um, x_mids_vals, thresholds_pred, thresholds_bio)
+    savez('figure_9_bis', starts/um, lengths/um, x_mids_vals, thresholds_pred, thresholds_bio)
     
 # Bifurcation condition: we search for the AIS position below which there is no bifuraction, for a fixed Gna
 print ('THEORY')

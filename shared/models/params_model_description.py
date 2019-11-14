@@ -53,19 +53,24 @@ Vn = -70.*mV
 Kn = 20.*mV 
 Taun_max = 1. * ms 
 
+# K7 channels 
+EM = -90. * mV # reversal potantial of K7 conductance
+gm_dens = 150. * (siemens / meter ** 2) # K7 surfacic conductance density in soma
+
 ### Soma
 
 # Na channels parameters
 gna_soma = 250. * (siemens / meter ** 2) 
-gna_dend = 20. * (siemens / meter ** 2) 
+gna_dend = 50. * (siemens / meter ** 2) 
 
 # K channels parameters
-gk_soma = 100. * (siemens / meter ** 2) 
-gk_dend = 20. * (siemens / meter ** 2) 
+gk_soma = 250. * (siemens / meter ** 2) 
+gk_dend = 50. * (siemens / meter ** 2) 
 
 ## Channels kinetics
 # Na+:
 Va_soma = -30.*mV 
 Vh_soma = -60.*mV  
 
-
+### Theory
+y0 = 1.19968

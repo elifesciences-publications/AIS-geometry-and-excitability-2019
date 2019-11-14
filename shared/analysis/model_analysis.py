@@ -56,6 +56,7 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
     
     Returns the minimal current amplitude that elicits a spike at the AIS.    
     '''
+    print ('Measuring the current threshold with the bissection method')
     
     if ais_start > ais_end:
         print ('The AIS starts after it ends.')
@@ -78,8 +79,9 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
         # THe location of current injection
         inj_idx = neuron.morphology.n + neuron.morphology.dendrite.n + int(ais_end/um) 
        
+        n_it = 0
         while True:
-            print (i_current)
+            print ('Injected current:', i_current)
             
             restore()
             
@@ -102,7 +104,7 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
             m_max_ais = max(M_AIS.m[0])
 
             if m_max_ais >= 0.5 and abs(i_current - i_min) <= 0.1*pA and spike == False :
-                print ('stop')
+                print ('Found the current threshold')
                 plot(M.t/ms, M.v[0]/mV, 'r', label='V soma at threshold')
                 plot(M_AIS.t/ms, M_AIS.v[0]/mV, '--r', label='V AIS at threshold')
                 legend()
@@ -115,6 +117,12 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
                 spike = True
             
             i_current = 0.5*i_max + 0.5*i_min
+            
+            n_it += 1
+            
+            if n_it > 25:
+                print ('Too much iterations')
+                break
                 
     return i_current
 
@@ -126,6 +134,8 @@ def measure_voltage_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
     
     Returns: voltage threshodl at the soma and at the AIS end.
     '''
+    print ('Measuring the voltage threshold')
+    
     if ais_start > ais_end:
         print ('The AIS starts after it ends.')
         vth_soma = nan
@@ -161,6 +171,7 @@ def measure_current_threshold_no_VC(params, neuron, resting_vm=-75.*mV, ais_star
     '''
     Same as 'measure_current_threshold' without voltage-clamping the soma before the current pulse.
     '''
+    print ('Measuring the current threshold with the bissection method')
     
     if ais_start > ais_end:
         print ('break')
@@ -183,7 +194,7 @@ def measure_current_threshold_no_VC(params, neuron, resting_vm=-75.*mV, ais_star
         inj_idx = neuron.morphology.n + neuron.morphology.dendrite.n + int(ais_end/um) 
        
         while True:
-            print (i_current)
+            print ('Injected current:', i_current)
             
             restore()
             
@@ -205,7 +216,7 @@ def measure_current_threshold_no_VC(params, neuron, resting_vm=-75.*mV, ais_star
             m_max_ais = max(M_AIS.m[0])
 
             if m_max_ais >= 0.5 and abs(i_current - i_min) <= 0.1*pA and spike == False :
-                print ('stop')
+                print ('Found the current threshold')
                 plot(M.t/ms, M.v[0]/mV, 'r', label='V soma at threshold')
                 plot(M_AIS.t/ms, M_AIS.v[0]/mV, '--r', label='V AIS at threshold')
                 legend()
@@ -225,6 +236,8 @@ def measure_voltage_threshold_no_VC(params, neuron, resting_vm=-75.*mV, ais_star
     '''
     Same as 'measure_voltage_threshold' without voltage-clamping the soma before the current pulse.
     '''
+    print ('Measuring the voltage threshold')
+    
     if ais_start > ais_end:
         print ('break')
         th_rheo = nan
@@ -261,7 +274,8 @@ def measure_threshold_in_vc(params, neuron, ais_start=5.*um, ais_end=30.*um, hyp
     """
     Measures the threshold in voltage-clamp as the lowest somatic membrane potential at the soma that triggers a spike at AIS end. 
     """
-
+    print ('Measuring the voltage threshold in voltage-clamp')
+    
     if ais_start > ais_end:
         print ('break')
         v_current = nan
@@ -293,7 +307,7 @@ def measure_threshold_in_vc(params, neuron, ais_start=5.*um, ais_end=30.*um, hyp
             v_max_ais = max(M_AIS.v[0][int(20.*ms/defaultclock.dt):int(70.*ms/defaultclock.dt)])
             
             if v_max_ais >= peak and abs(v_current - v_min) <= .1*mV and spike == False :
-                print( 'spike:', v_current)
+                print( 'Lowest command potential that elicits a spike:', v_current)
                 break
             if v_max_ais < peak:
                 v_min = v_current

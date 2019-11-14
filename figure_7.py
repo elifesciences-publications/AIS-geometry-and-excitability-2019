@@ -13,9 +13,8 @@ We show that the threshold goes as log(x gna).
 """
 from __future__ import print_function
 from brian2 import *
-from shared.models import model_spike_initiation,  model_Na_Kv1, params_all
+from shared.models import model_spike_initiation,  model_Na_Kv1, params_model_description
 from shared.analysis import measure_threshold_in_vc, measure_current_threshold, measure_voltage_threshold
-from shared.models.params_all import *
 from scipy import stats
 from joblib import Parallel, delayed
 from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
@@ -26,14 +25,15 @@ only_plotting = True # to plot the figure without running the simulations
 # Parameters
 defaultclock.dt = 0.005*ms
 n=5
-ra = 4.*Ri/(pi*axon_diam**2) # axial resistance per unit length
+params = params_model_description
+ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
 starts = linspace(10., 30., n)*um # AIS starts
 gnas = linspace (200, 600, n)*nS # total Na conductances
 
 ### SIMULATIONS
 
 if only_plotting: # loading data
-    data = load('figure_7.npz')
+    data = load('figure_7_bis.npz')
     starts = data['arr_0']*um
     gnas = data['arr_1']*nS
     thresholds_si = data['arr_2']*mV
@@ -43,8 +43,8 @@ else: # running simulations
     # A function to measure of the threshold in the SI model in VC, for different AIS start positions and Gna
     print ('SI model')
     def SI_model_threshold_in_VC(ais_start, ais_end, gna_tot):
-        print (ais_start, gna_tot)
-        params = params_all
+        print ('AIS start:', ais_start, 'Gna:', gna_tot)
+        params = params_model_description #params_all
         defaultclock.dt = 0.005*ms
         
         neuron = model_spike_initiation(params, ais_start, ais_end, gna_tot)
@@ -62,17 +62,17 @@ else: # running simulations
     # A function to measure of the threshold BIO model in CC, for different AIS start positions and Gna
     print ('BIO model')
     def BIO_model_threshold_in_CC(ais_start, ais_end, gna_tot):
-        print (ais_start, gna_tot)
-        params = params_all
+        print ('AIS start:', ais_start, 'Gna:', gna_tot)
+        params = params_model_description#params_all
         pulse_length = 50.*ms
         
         neuron = model_Na_Kv1(params=params, resting_vm =-75.*mV, Na_start = ais_start, Na_end = ais_end, gna_tot=gna_tot, density=False)
         i_rheo = measure_current_threshold(params, neuron, -75.*mV, ais_start, ais_end, pulse_length)
-        print ('current threshold:', i_rheo)
+        print ('Rheobase:', i_rheo)
         
         neuron = model_Na_Kv1(params=params, resting_vm =-75.*mV, Na_start = ais_start, Na_end = ais_end, gna_tot=gna_tot, density=False)
         v_thres, _,_,_ = measure_voltage_threshold(params, neuron, -75.*mV, ais_start, ais_end, i_rheo, pulse_length) 
-    
+        print ('Voltage threshold:', v_thres)
         return v_thres 
     
     # run the simulations with joblib
@@ -82,7 +82,7 @@ else: # running simulations
         thresholds_bio = thresholds_bio.reshape((n,n))*1e3
     
     # Save the data in an npz file
-    savez('figure_7', starts/um, gnas/nS, thresholds_si/mV, thresholds_bio/mV)
+    savez('figure_7_bis', starts/um, gnas/nS, thresholds_si/mV, thresholds_bio/mV)
     
 ### THEORY
     
@@ -91,8 +91,9 @@ thresholds_pred_inact  = zeros((n,n)) # with the contribution of inactivation
 
 for i in range(n):
     for j in range(n):
-        v_thres_pred = Va - Ka - Ka * log(starts[i] * ra * gnas[j] * (ENa-Va)/Ka)
-        v_thres_pred_inact = Va - Ka - Ka * log(starts[i] * ra * gnas[j] * (ENa-Va)/Ka) + Ka*log(1.+exp((-75.*mV-Vh)/Kh))
+        v_thres_pred = params.Va - params.Ka - params.Ka * log(starts[i] * ra * gnas[j] * (params.ENa-params.Va)/params.Ka)
+        v_thres_pred_inact = params.Va - params.Ka - params.Ka * log(starts[i] * ra * gnas[j] * (params.ENa-params.Va)/params.Ka) + \
+                params.Ka*log(1.+exp((-75.*mV-params.Vh)/params.Kh))
         thresholds_pred[i,j] = v_thres_pred/mV
         thresholds_pred_inact[i,j] = v_thres_pred_inact/mV
 
@@ -207,7 +208,7 @@ ax22.tick_params(
     labelleft=False) # labels along the bottom edge are off
 ax22.set_ylim(-75,-50)
 
-ax22.text(130, -52,'D', fontsize=14, weight='bold')
+ax22.text(130, -42,'D', fontsize=14, weight='bold')
 
 # Panel E: BIO model: threshold vs AIS start position
 
@@ -218,11 +219,11 @@ for k in range(n):
     semilogx(starts/um, thresholds_bio[:,k], color=colors[k], label='k=%.2f mV' %slopes_x_bio[k])
 ax3.set_xlabel('$\Delta$ ($\mu$m)') 
 ax3.set_ylabel('$V_s$ (mV)') 
-ax3.set_ylim(-75,-50)
+ax3.set_ylim(-75,-40)
 ax3.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax3.xaxis.set_minor_formatter(ScalarFormatter())
 
-ax3.text(6., -52,'E', fontsize=14, weight='bold')
+ax3.text(6., -42,'E', fontsize=14, weight='bold')
 
 # Panel F: BIO model: threshold vs total Na conductance in the AIS
 
@@ -230,7 +231,7 @@ ax32 = subplot(326, sharey = ax3)
 for k in range(n):
     semilogx(gnas/nS, thresholds_bio[k,:], color =colors[k], label='k=%.2f mV' %slopes_gna_bio[k])
 ax32.set_xlabel('$G$ (nS)') #, fontsize=14)
-ax32.set_ylim(-75,-50)
+ax32.set_ylim(-75,-40)
 ax32.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax32.xaxis.set_minor_formatter(ScalarFormatter())
 ax32.text(130, -52,'F', fontsize=14, weight='bold')

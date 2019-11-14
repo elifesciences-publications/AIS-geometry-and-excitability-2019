@@ -9,7 +9,7 @@ import re
 
 __all__ = ['load_all_files','load_file','path']
 
-path = "/Users/sarah/Documents/Data/Bruce Bean/Fig 7 Data Soma-Axon Coupling/" # to be changed!
+path = "shared/resistive_coupling/hu-bean-2018/" 
 
 def load_file(filename):
     '''
