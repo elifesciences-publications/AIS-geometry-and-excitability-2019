@@ -14,7 +14,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from shared.analysis import measure_current_threshold_no_VC, measure_voltage_threshold_no_VC, measure_input_resistance
 from shared.models import params_model_description, model_Na_Kv1
 
-only_plotting = False # to plot the figure without running the simulations
+only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 n=4 
@@ -114,7 +114,7 @@ else: # running simulations
     v0_ais_hyp = [results_hyp[i][5] for i in range(n)]# resting membrane potential at the AIS
     
     # Save the data in an npz file
-    savez('figure_6_bis', gL_somas/(siemens/meter**2), gnas/nS, hyp_curr/nA, current_thresholds_gl/nA, current_thresholds_gna/nA, current_thresholds_hyp/nA,\
+    savez('figure_6', gL_somas/(siemens/meter**2), gnas/nS, hyp_curr/nA, current_thresholds_gl/nA, current_thresholds_gna/nA, current_thresholds_hyp/nA,\
                   v_thresholds_gl/mV, v_thresholds_gna/mV, v_thresholds_hyp/mV,\
                   v_thresholds_ais_hyp/mV, v0_soma_gl/mV, v0_ais_gl/mV, v0_soma_gna/mV, v0_ais_gna/mV, v0_soma_hyp/mV, v0_ais_hyp/mV)
 
@@ -123,7 +123,7 @@ else: # running simulations
 fcurrent = figure('Voltage threshold vs rheobase', figsize=(9.5,3))  
 
 # Panel A: voltage and current threshold vs G
-i1_range = max(current_thresholds_gna)/nA * (-75.*mV - (-40.*mV))/(resting_vm - max(v_thresholds_gna))
+i1_range = max(current_thresholds_gna)/nA * (-75.*mV - (-35.*mV))/(resting_vm - max(v_thresholds_gna))
 G_min = 200.
 G_max = 500.
 ax1 = fcurrent.add_subplot(131)
@@ -132,7 +132,7 @@ ax2 = ax1.twinx()
 ax1.plot(gnas/nS, v_thresholds_gna/mV, 'forestgreen')
 ax1.plot(gnas/nS, v0_soma_gna/mV, 'k--')
 ax1.tick_params(axis='y', colors='forestgreen')
-ax1.set_ylim(-75, -40)
+ax1.set_ylim(-75, -35)
 ax1.set_xlim(G_min,G_max)
 ax1.set_ylabel('$V_{s}$ (mV)', color='forestgreen')
 ax1.set_xlabel('$G$ (nS)')
@@ -143,10 +143,10 @@ ax2.set_ylim(0, i1_range)
 ax2.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
 ax2.tick_params(colors='darkblue')
 
-ax1.text((G_max-G_min)/3, -40,'A', fontsize=14, weight='bold')
+ax1.text((G_max-G_min)/3, -35,'A', fontsize=14, weight='bold')
 
 # Panel B: voltage and current threshold vs gL
-i2_range = min(current_thresholds_gl)/nA * (-75.*mV - (-40.*mV))/(resting_vm - max(v_thresholds_gl))
+i2_range = min(current_thresholds_gl)/nA * (-75.*mV - (-35.*mV))/(resting_vm - max(v_thresholds_gl))
 gl_min = 0.25
 gl_max = 10.
 ax3 = fcurrent.add_subplot(132)
@@ -154,7 +154,7 @@ ax4 = ax3.twinx()
 
 ax3.plot(gL_somas, v_thresholds_gl/mV, 'forestgreen')
 ax3.plot(gL_somas, v0_soma_gl/mV, 'k--')
-ax3.set_ylim(-75, -40)
+ax3.set_ylim(-75, -35)
 ax3.set_ylabel('$V_{s}$ (mV)', color='forestgreen')
 ax3.set_xlabel('$g_L$ (S/$m^2$)')
 ax3.tick_params(axis='y', colors='forestgreen')
@@ -166,10 +166,10 @@ ax4.tick_params(colors='darkblue')
 ax4.set_xlim(gl_min,gl_max)
 ax4.set_ylim(0, i2_range)
 
-ax3.text(-(gl_max-gl_min)/3, -40,'B', fontsize=14, weight='bold')
+ax3.text(-(gl_max-gl_min)/3, -35,'B', fontsize=14, weight='bold')
 
 # Panel C: somatic and axonal voltage threshold and current threshold vs Ih
-i3_range = min(current_thresholds_hyp)/nA * (-75.*mV - (-40.*mV))/(-75.*mV - min(v_thresholds_hyp))
+i3_range = min(current_thresholds_hyp)/nA * (-75.*mV - (-35.*mV))/(-75.*mV - min(v_thresholds_hyp))
 ih_min = 0
 ih_max = 0.25
 ax5 = fcurrent.add_subplot(133)
@@ -177,7 +177,7 @@ ax6 = ax5.twinx()
 
 ax5.plot(abs(hyp_curr/nA), v_thresholds_hyp/mV, 'forestgreen', label='soma')
 ax5.plot(abs(hyp_curr/nA), v_thresholds_ais_hyp/mV, '-.', color='forestgreen', label='AIS')
-ax5.set_ylim(-75, -40)
+ax5.set_ylim(-75, -35)
 ax5.set_xlim(ih_min, ih_max)
 ax5.set_ylabel('Threshold (mV)', color='forestgreen')
 ax5.set_xlabel('| I | (nA)')
@@ -189,7 +189,7 @@ ax6.set_ylim(0,  i3_range)
 ax6.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
 ax6.tick_params(colors='darkblue')
 
-ax5.text(-(ih_max-ih_min)/3, -40,'C', fontsize=14, weight='bold')
+ax5.text(-(ih_max-ih_min)/3, -35,'C', fontsize=14, weight='bold')
 
 subplots_adjust(top=0.88, bottom=0.29, left=0.075,right=0.93,hspace=0.2,wspace=0.65)
 
