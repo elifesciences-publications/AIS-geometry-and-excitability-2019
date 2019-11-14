@@ -1,13 +1,18 @@
 # Theoretical relation between axon initial segment geometry and excitability
 Code corresponding to the paper
 "[Theoretical relation between axon initial segment geometry and excitability](https://www.biorxiv.org/content/10.1101/834671v1)"
-by Sarah Goethals and Romain Brette
+by Sarah Goethals and Romain Brette.
 
 ### Requirements
 
 In addition to standard scientific packages (scipy, matplotlib), this code requires:
 * joblib
 * [Brian 2](http://briansimulator.org)
+
+For Figure 3, electrophysiological data from Hu and Bean (2018)
+(DOI: 10.5281/zenodo.3539297) must be
+[downloaded](https://zenodo.org/record/3539297#.Xc0WbjJKhBw) into the folder
+`shared/resistive_coupling/hu-bean-2018`.
 
 ## Passive properties
 
