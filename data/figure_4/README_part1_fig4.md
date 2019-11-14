@@ -1,6 +1,6 @@
 # AIS diameter vs soma diameter in a variety of cell types.
 
-These the data included in figure 4 of the paper that shows the diameter of the AIS vs the diameter of the soma for different cell types.
+These are the data included in figure 4 of the paper that shows the diameter of the AIS vs the diameter of the soma for different cell types.
 
 To plot the figure 4: figure_4.py
 

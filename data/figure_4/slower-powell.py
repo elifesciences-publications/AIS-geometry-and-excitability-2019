@@ -1,7 +1,5 @@
 '''
-
-A script to read the data (AIS diameter and soma diameter) from Sloper and Powell 1979. 
-
+A script to read the data (AIS diameter and soma diameter) from Sloper and Powell 1979.
 '''
 
 
@@ -13,7 +11,7 @@ d_soma, d_axon = loadtxt('slower-powell-1979-Fig71.txt', skiprows = 1).T
 
 # Regression in log plot
 slope, intercept, r_value, p_value, std_err = linregress(log(d_soma), log(d_axon))
-print slope
+print('Linear regression slope (log space): {}'.format(slope))
 
 # fit with slope 4/3
 d = linspace(10,40,100)
