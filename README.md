@@ -1,7 +1,7 @@
 # Theoretical relation between axon initial segment geometry and excitability
 Code corresponding to the paper
 "[Theoretical relation between axon initial segment geometry and excitability](https://www.biorxiv.org/content/10.1101/834671v1)"
-by Sarah Goethals and Romain Brette
+by Sarah Goethals and Romain Brette.
 
 ### Requirements
 
