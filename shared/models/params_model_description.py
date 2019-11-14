@@ -57,11 +57,11 @@ Taun_max = 1. * ms
 
 # Na channels parameters
 gna_soma = 250. * (siemens / meter ** 2) 
-gna_dend = 50. * (siemens / meter ** 2) 
+gna_dend = 20. * (siemens / meter ** 2) 
 
 # K channels parameters
 gk_soma = 100. * (siemens / meter ** 2) 
-gk_dend = 50. * (siemens / meter ** 2) 
+gk_dend = 20. * (siemens / meter ** 2) 
 
 ## Channels kinetics
 # Na+:
