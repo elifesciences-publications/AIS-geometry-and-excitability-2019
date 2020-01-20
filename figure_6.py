@@ -129,12 +129,12 @@ G_max = 500.
 ax1 = fcurrent.add_subplot(131)
 ax2 = ax1.twinx()
 
-ax1.plot(gnas/nS, v_thresholds_gna/mV, 'forestgreen')
+ax1.plot(gnas/nS, v_thresholds_gna/mV, 'cornflowerblue')
 ax1.plot(gnas/nS, v0_soma_gna/mV, 'k--')
-ax1.tick_params(axis='y', colors='forestgreen')
+ax1.tick_params(axis='y', colors='cornflowerblue')
 ax1.set_ylim(-75, -35)
 ax1.set_xlim(G_min,G_max)
-ax1.set_ylabel('$V_{s}$ (mV)', color='forestgreen')
+ax1.set_ylabel('$V_{s}$ (mV)', color='cornflowerblue')
 ax1.set_xlabel('$G$ (nS)')
 ax1.text(G_min+(G_max-G_min)/15, -72,'$V_0$', fontsize=10)
 
@@ -152,12 +152,12 @@ gl_max = 10.
 ax3 = fcurrent.add_subplot(132)
 ax4 = ax3.twinx()
 
-ax3.plot(gL_somas, v_thresholds_gl/mV, 'forestgreen')
+ax3.plot(gL_somas, v_thresholds_gl/mV, 'cornflowerblue')
 ax3.plot(gL_somas, v0_soma_gl/mV, 'k--')
 ax3.set_ylim(-75, -35)
-ax3.set_ylabel('$V_{s}$ (mV)', color='forestgreen')
+ax3.set_ylabel('$V_{s}$ (mV)', color='cornflowerblue')
 ax3.set_xlabel('$g_L$ (S/$m^2$)')
-ax3.tick_params(axis='y', colors='forestgreen')
+ax3.tick_params(axis='y', colors='cornflowerblue')
 ax3.text(gl_min+(gl_max-gl_min)/15, -72,'$V_0$', fontsize=10)
 
 ax4.plot(gL_somas, current_thresholds_gl/nA, 'darkblue')
@@ -170,26 +170,26 @@ ax3.text(-(gl_max-gl_min)/3, -35,'B', fontsize=14, weight='bold')
 
 # Panel C: somatic and axonal voltage threshold and current threshold vs Ih
 i3_range = min(current_thresholds_hyp)/nA * (-75.*mV - (-35.*mV))/(-75.*mV - min(v_thresholds_hyp))
-ih_min = 0
-ih_max = 0.25
+ih_max = 0
+ih_min = -0.25
 ax5 = fcurrent.add_subplot(133)
 ax6 = ax5.twinx()
 
-ax5.plot(abs(hyp_curr/nA), v_thresholds_hyp/mV, 'forestgreen', label='soma')
-ax5.plot(abs(hyp_curr/nA), v_thresholds_ais_hyp/mV, '-.', color='forestgreen', label='AIS')
+ax5.plot(hyp_curr/nA, v_thresholds_hyp/mV, 'cornflowerblue', label='soma')
+ax5.plot(hyp_curr/nA, v_thresholds_ais_hyp/mV, '-.', color='cornflowerblue', label='AIS')
 ax5.set_ylim(-75, -35)
 ax5.set_xlim(ih_min, ih_max)
-ax5.set_ylabel('Threshold (mV)', color='forestgreen')
-ax5.set_xlabel('| I | (nA)')
-ax5.tick_params(axis='y', colors='forestgreen')
+ax5.set_ylabel('Threshold (mV)', color='cornflowerblue')
+ax5.set_xlabel('I (nA)')
+ax5.tick_params(axis='y', colors='cornflowerblue')
 ax5.legend(frameon=False, fontsize=8, loc='lower left')
 
-ax6.plot(abs(hyp_curr/nA), current_thresholds_hyp/nA, 'darkblue') 
+ax6.plot(hyp_curr/nA, current_thresholds_hyp/nA, 'darkblue') 
 ax6.set_ylim(0,  i3_range)
 ax6.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
 ax6.tick_params(colors='darkblue')
 
-ax5.text(-(ih_max-ih_min)/3, -35,'C', fontsize=14, weight='bold')
+ax5.text(ih_min + (ih_min-ih_max)/3, -35,'C', fontsize=14, weight='bold')
 
 subplots_adjust(top=0.88, bottom=0.29, left=0.075,right=0.93,hspace=0.2,wspace=0.65)
 
