@@ -49,7 +49,8 @@ def measure_input_resistance(params, neuron, resting_vm=-75.*mV):
     
     return Rin_soma, M.v[0]/mV, M.t/ms
     
-def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*um, ais_end=30.*um, pulse_length = 2.*ms, i_inj = 0, si_site = False, latency = 20.*ms, plot_v = True, color='k'):
+def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*um, ais_end=30.*um, pulse_length = 2.*ms, i_inj = 0, \
+                              si_site = False, latency = 20.*ms, axo_dend = False, plot_v = True, color='k'):
     '''
     Measure the current threshold as the minimal current that elicits a spike, for variable duration of the current pulse,
     with the bissection method. The soma is voltage-clamped until the injection of the current pulse.
@@ -71,6 +72,8 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
         
         if si_site:
             M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.axon[si_site])
+        elif axo_dend:
+            M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.stem.axon[ais_end])
         else:
             M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.axon[ais_end])
             
@@ -126,7 +129,8 @@ def measure_current_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
                 
     return i_current
 
-def measure_voltage_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*um, ais_end=30.*um, i_rheo = 0.5*nA, pulse_length = 2.*ms, i_inj = 0, latency = 20.*ms, si_site = False, plot_v = True, color = 'k'):
+def measure_voltage_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*um, ais_end=30.*um, i_rheo = 0.5*nA, pulse_length = 2.*ms, i_inj = 0, \
+                              latency = 20.*ms, si_site = False, axo_dend=False, plot_v = True, color = 'k'):
     '''
     Measures the voltage threshold as the maximal membrane potential reached during the largest non-spiking situation.
     The soma is voltage-clamped at the resting membrane potential, 
@@ -145,6 +149,8 @@ def measure_voltage_threshold(params, neuron, resting_vm=-75.*mV, ais_start=5.*u
         
         if si_site:
             M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.axon[si_site])
+        elif axo_dend:
+            M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.stem.axon[ais_end])
         else:
             M_AIS = StateMonitor(neuron, ('v', 'm'), record = neuron.morphology.axon[ais_end])
         

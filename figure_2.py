@@ -15,6 +15,8 @@ from shared.resistive_coupling.resistive_coupling_simulation import *
 fig = figure(1, (8,4))
 
 ### SMALL NEURON
+print ('SMALL NEURON')
+
 soma_diameter_small = axon_diameter
 
 # Top panel: drawing of the axon 
@@ -40,11 +42,11 @@ ax2.plot(x/um, v100/mV,'r')
 ax2.set_xlim(-10,200)
 ax2.set_ylim(-75,-60)
 ax2.set_ylabel('Va (mV)')
-ax2.text(-55,-60,'A', fontsize=14, weight='bold')
+ax2.text(-60,-60,'A', fontsize=14, weight='bold')
 
 # Panel B: Input resistance vs. distance
 ax3 = subplot(325)
-distances = linspace(10,200,10)*um
+distances = linspace(0,200,10)*um
 
 # Simulation
 results = Parallel(n_jobs = 4)(delayed(input_resistance)(soma_diameter_small,d) for d in distances)
@@ -53,7 +55,7 @@ _, _, Ra200ms, _ = zip(*results)
 ax3.plot(distances/um,Ra200ms/Mohm,"k", label='R')
 ax3.set_ylim(0,1000)
 ax3.set_xlim(-10,200)
-ax3.text(-55, 1000,'B', fontsize=14, weight='bold')
+ax3.text(-60, 1000,'B', fontsize=14, weight='bold')
 
 # Theory
 space_constant = sqrt(axon_diameter/(gL*4*Ri))
@@ -66,6 +68,7 @@ ax3.set_xlabel('Distance ($\mu$m)')
 ax3.set_ylabel('R (M$\Omega$)')
 
 ### LARGE NEURON
+print ('LARGE NEURON')
 soma_diameter_large = 100*um
 current = 100*pA
 
@@ -96,7 +99,7 @@ ax5.text(-50, -60,'C', fontsize=14, weight='bold')
 
 # Panel D: Input resistance vs. distance
 ax6 = subplot(326)
-distances = linspace(10,200,10)*um
+distances = linspace(0,200,10)*um
 
 # Simulation
 results = Parallel(n_jobs = 4)(delayed(input_resistance)(soma_diameter_large,d) for d in distances)
@@ -108,6 +111,7 @@ ax6.plot(distances/um, Ra200ms/Mohm,"k", label='R')
 space_constant = sqrt(axon_diameter/(gL*4*Ri))
 ra = 4*Ri/(pi*axon_diameter**2)
 rs = 1/(pi*soma_diameter_large**2*gL) # soma resistance
+print ('Soma resistance:', rs)
 rdistal = ra*space_constant # distal resistance
 approximation = 1./(1/(ra*distances + rs) + 1./rdistal)
 approximation2 = 1./(1/(ra*distances))# + 1/rdistal)
@@ -125,6 +129,9 @@ legend2 = legend([lines[i] for i in [1,2]], [ 'theory (soma)', 'theory (killed e
 ax6.add_artist(legend1)
 ax6.add_artist(legend2)
 
-tight_layout()
+#tight_layout()
 
 show()
+
+print ('Axial resistance per unit length ra=', ra/(Mohm/um), 'Mohm/um')
+print ('Axon space constant lambda=', space_constant)
