@@ -42,8 +42,8 @@ starts = data['arr_0']*um
 starts_large = data['arr_1']*um
 length = data['arr_2']*um
 scaling = data['arr_3']
-thresholds = data['arr_4']*mV
-thresholds_large = data['arr_5']*mV
+thresholds = data['arr_4']*1e3
+thresholds_large = data['arr_5']*1e3
 
 length_large = sqrt(scaling) * length
 
@@ -63,7 +63,7 @@ ax1 = fig.add_subplot(221)
 
 ax1.semilogx(x_mids/um, thresholds, color=colors[3], label='original')#'darkblue')
 ax1.semilogx(x_mids_large/um, thresholds_large, color=colors[2], label='large neuron')
-ax1.semilogx(x_mids/um, thresholds + 5*log(scaling)*volt, '--', color=colors[3], label='expected shift')
+ax1.semilogx(x_mids/um, thresholds + (5./2)*log(scaling), '--', color=colors[3], label='expected shift')
 ax1.set_ylabel('$V_s$ (mV)') 
 ax1.set_xlabel('$x_{1/2}$ ($\mu$m)' )
 ax1.set_ylim(-75,-40)

@@ -32,8 +32,8 @@ if only_plotting: # loading data
     starts_large = data['arr_1']*um
     length = data['arr_2']*um
     scaling = data['arr_3']
-    thresholds = data['arr_4']*1e3*mV
-    thresholds_large = data['arr_5']*1e3*mV
+    thresholds = data['arr_4']
+    thresholds_large = data['arr_5']
     
     length_large = sqrt(scaling) * length
 
@@ -93,7 +93,7 @@ else: # running simulations
     length_large = sqrt(scaling) * length # AIS length
     
     if __name__ == '__main__':
-        results_large = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(start, start+length_large, scaling*GNa, morpho_large) for start in starts_large)
+        results_large = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(start, start+length_large, scaling**(3./2)*GNa, morpho_large) for start in starts_large)
         thresholds_large = array(results_large)
         
     # # Save the data in an npz file
@@ -103,13 +103,13 @@ x_mids = starts+length/2 # AIS middle position
 x_mids_large = starts_large+length_large/2 # AIS middle position
 
 # Slopes
-slopes_large, _, _, _, _ = stats.linregress(-log(x_mids_large/um), thresholds_large/mV)
-slopes_500, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds/mV)
+slopes_large, _, _, _, _ = stats.linregress(-log(x_mids_large/um), thresholds_large)
+slopes_500, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds)
 
 print ('Slopes:')
 print ('Biophysical model in current-clamp:')
-print('Threshold vs delta:', slopes_500, 'mV')
-print('Threshold vs delta large neuron:', slopes_large, 'mV')
+print('Threshold vs delta:', slopes_500*1e3, 'mV')
+print('Threshold vs delta large neuron:', slopes_large*1e3, 'mV')
 
 ### Plots
 
@@ -117,9 +117,9 @@ fig = figure(2, figsize=(4,3))
 
 ax3 = subplot(111)
 
-ax3.semilogx(x_mids/um, thresholds/mV, '--', color='k', label='original axon: k=%.2f mV' %slopes_500)
-ax3.semilogx(x_mids/um, thresholds/mV + 5*log(scaling), '--', color='k', label='original axon, predicted shift', alpha=0.5)
-ax3.semilogx(x_mids_large/um, thresholds_large/mV, '-', color='forestgreen', label='large neuron, k=%.2f mV' %slopes_large)
+ax3.semilogx(x_mids/um, thresholds*1e3, '--', color='k', label='original axon: k=%.2f mV' %slopes_500)
+ax3.semilogx(x_mids/um, thresholds*1e3 + 5./2*log(scaling), '--', color='k', label='original axon, predicted shift', alpha=0.5)
+ax3.semilogx(x_mids_large/um, thresholds_large*1e3, '-', color='forestgreen', label='large neuron, k=%.2f mV' %slopes_large)
 ax3.set_xlabel('$x_{1/2}$ ($\mu$m)') 
 ax3.set_ylabel('$V_s$ (mV)') 
 ax3.set_ylim(-65,-40)
