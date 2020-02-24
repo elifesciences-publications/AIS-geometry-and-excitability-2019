@@ -1,263 +1,136 @@
 
-"""
-AIS geometry and excitability, section 3: "A spatially extended AIS" (figure 10)
 
-A figure to summarize the logarithmic dependence of the threshold on the 
-Na conductance density, AIS length and middle position.
+"""
+AIS geometry and excitability, section 3: "Non-sodium axonal currents" (Figure 11)
+
+Extended AIS with Kv7 channels in the distal half of the AIS.
 
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold
-from scipy import stats
+from shared import params_model_description, model_Na_Kv1_Kv7, measure_current_threshold, measure_voltage_threshold
 from joblib import Parallel, delayed
-from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+import matplotlib.ticker as ticker
+from scipy import stats
 
 only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
-n = 4
-m = 3
-p = 4
 defaultclock.dt = 0.005*ms
-params = params_model_description #params_all
-ra = 4.*params.Ri/(pi*params.axon_diam**2)
 
-### SIMULATIONS
+n=7
+params = params_model_description#params_all
+ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
+length = 30.*um # AIS length
+GNa = 500.*nS # total Na conductance at the AIS
 
-if only_plotting: # load data
+### SIMULATIONS in the biophysical model
+
+if only_plotting: # loading data
     data = load('figure_10.npz')
-    ais_geom = data['arr_0']*um
-    gna_densities = data['arr_1']* (siemens/meter**2)
-    thresholds_gna = data['arr_2']
-    starts = data['arr_3']*um
-    lengths = data['arr_4']*um
-    threshold_low = data['arr_5']
-    threshold_high = data['arr_6']
-    
-    # AIS middle position from AIS start and length
-    x_mids = zeros((m,p))
-    for i in range(m):
-        for j in range(p):
-            x_mids[i,j] = starts[i]+0.5*lengths[j]
-    x_mids_vals = unique(x_mids)*1e6
+    starts = data['arr_0']*um
+    gms = data['arr_1']*nS
+    thresholds_soma = data['arr_2']*mV
+    thresholds_ais = data['arr_3']*mV
+
 else: # running simulations
-    
-    # A function to measure threshold vs Na density for different AIS middle position and length
-    def BIO_model_in_CC_threshold_density(ais_start, ais_end, gna_dens):
+    # A function to measure the threshold as a function of AIS position, length and Kv7 conductance at the AIS
+    def BIO_model_in_CC_Kv7(resting_vm, ais_start, ais_end, gna_tot, gm_tot):
         defaultclock.dt = 0.005*ms
-        resting_vm = -75.*mV
         pulse_length = 50.*ms
-        print (ais_start, ais_end)
-            
+        
         # current threshold
-        neuron = model_Na_Kv1(params, resting_vm, ais_start, ais_end, density = True, gna_density = gna_dens)
-        i_rheo = measure_current_threshold(params, neuron, resting_vm, ais_start, ais_end, pulse_length = pulse_length)  
-        
+        neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
+        i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,pulse_length = pulse_length)  
+        print ('Rheobase:', i_rheo)
+            
         # voltage threshold
-        neuron = model_Na_Kv1(params, resting_vm, ais_start, ais_end, density=True, gna_density = gna_dens)
-        vs, va, _, _ = measure_voltage_threshold(params, neuron, resting_vm, ais_start, ais_end, i_rheo = i_rheo, pulse_length = pulse_length) 
+        neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
+        vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,\
+                                                 i_rheo = i_rheo, pulse_length = pulse_length)
+        print ('Thresholds: soma:', vs, ', AIS:', va)
         
-        return vs
+        return i_rheo, vs, va
+
+    starts = linspace(0., 30., n)*um # AIS start positions
+    gm_densities = linspace(0, 300., n)*(siemens/meter**2) # Kv7 conductance density at the AIS
+    gms = gm_densities * (pi*(length/2)*params.axon_diam) # corresponding total Kv7 conductance at the AIS
     
-    print ('Measuring thresholds for varying Na densities' )
-    gna_densities = linspace(3000., 6000., n) * (siemens/meter**2)
-    ais_geom = [[10.,20.], [0.,40.], [20.,20.],[10.,40.]]*um 
-    
-    # Measuring the threshold 
+    # Measuring the threshold
     if __name__ == '__main__':
-        thresholds_gna = Parallel(n_jobs = 4)(delayed(BIO_model_in_CC_threshold_density)(start, start+length, gna_dens) \
-                                 for (start, length) in ais_geom for gna_dens in gna_densities)
+        traces = Parallel(n_jobs = 5)(delayed(BIO_model_in_CC_Kv7)(-75.*mV, start, start+length, GNa, gm) for start in starts for gm in gms)
     
-    thresholds_gna = array(thresholds_gna)
-    thresholds_gna = thresholds_gna.reshape((2,2,n))*1e3
+    thresholds_soma = zeros((n,n)) # voltage threshold at the soma
+    thresholds_ais = zeros((n,n)) # voltage threshold at the AIS
     
-    # A function to measure threshold vs length and middle position for different Na density 
-    def BIO_model_threshold_in_CC(x_star, length, gna_dens):
-        defaultclock.dt = 0.005*ms
-        resting_vm = -75.*mV
-        pulse_length = 50.*ms
-        
-        # AIS start
-        start = round(x_star, 2)*um - length/2
-        # AIS end
-        end = start + length
-        
-        # Removing impossible geometries: the length can not be bigger than two times the middle position
-        if length/2 <= round(x_star, 2)*um:
-            
-            # current threshold
-            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=True, gna_density = gna_dens)
-            i_rheo = measure_current_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, pulse_length = pulse_length)  
-            print ('Rheobase:', i_rheo)
-            
-            # voltage threshold
-            neuron = model_Na_Kv1(params, resting_vm, Na_start = start, Na_end = end, density=True, gna_density = gna_dens)
-            vs, va, _, _ = measure_voltage_threshold(params, neuron, resting_vm=resting_vm, ais_start=start, ais_end=end, i_rheo = i_rheo, pulse_length = pulse_length) 
-            print ('Threshold:', vs)
-            res = vs
-        else: # bottom right triangle
-            res = nan
+    # Re-arranging the array
+    for i in range(n):
+        for j in range(n):
+            thresholds_soma[i,j] = traces[n*i+j][1]*1e3
+            thresholds_ais[i,j] = traces[n*i+j][2]*1e3
     
-        return res
+    # Save the data to a npz file
+    savez('figure_11', starts/um, gms/nS, thresholds_soma/mV, thresholds_ais/mV)
     
-    starts = linspace(0., 20., m)*um
-    lengths = linspace(10., 40., p)*um
-    
-    # Middle position from AIS start and end
-    x_mids = zeros((m,p))
-    for i in range(m):
-        for j in range(p):
-            x_mids[i,j] = starts[i]+0.5*lengths[j]
-    x_mids_vals = unique(x_mids)*1e6
-    
-    # Measuring the threshold with high Na density
-    print ('measuring threshold for varying AIS length and middle position with high Na density')
-    if __name__ == '__main__':
-        threshold_high = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(x_mid, length, 5000. * (siemens/meter**2)) for x_mid in x_mids_vals for length in lengths)
-    
-    threshold_high = array(threshold_high)
-    threshold_high = threshold_high.reshape((len(x_mids_vals),p))*1e3
-    
-    # Measuring the threshold with low Na density
-    print ('measuring threshold for varying AIS length and middle position with low Na density')
-    if __name__ == '__main__':
-        threshold_low = Parallel(n_jobs = 5)(delayed(BIO_model_threshold_in_CC)(x_mid, length, 3500. * (siemens/meter**2)) for x_mid in x_mids_vals for length in lengths)
-    
-    threshold_low = array(threshold_low)
-    threshold_low = threshold_low.reshape((len(x_mids_vals),p))*1e3
-    
-    #Save the data
-    savez('figure_10', ais_geom/um, gna_densities, thresholds_gna, starts/um, lengths/um, \
-                              threshold_low, threshold_high)
+### Plots
+x_mids = starts+length/2 # AIS middle position
+gms_label = gms/(pi*(length/2)*params.axon_diam) / (siemens/meter**2) 
 
-### Re-arranging the arrays 
-
-# Threshold vs middle position
-# short AIS, low density: 
-thresholds_mid_shortlow = threshold_low[:, 1] # L=20
-# short AIS, high density
-thresholds_mid_shorthigh = threshold_high[:, 1] # L=20
-# long AIS, low density
-thresholds_mid_longlow = threshold_low[:, 3] # L=30
-# long AIS, high density
-thresholds_mid_longhigh = threshold_high[:, 3] # L=30
-
-# Threshold vs length
-# proximal AIS, high density 
-thresholds_len_proxhigh = threshold_high[3, :]  
-# distal AIS, high density
-thresholds_len_disthigh = threshold_high[5,  :]  
-# distal AIS, low density
-thresholds_len_distlow = threshold_low[5,  :] 
-# proximal AIS, low density 
-thresholds_len_proxlow = threshold_low[3, :]
-
-###Plots
+for i in range(len(gms)):
+    slope, _, _, _, _ = stats.linregress(log(x_mids/um), thresholds_ais[:,i])
+    print ('Kv7 density:', gms_label[i], ', slope:', slope)
 
 # Custom colormap
 top = get_cmap('Oranges_r', 128)
 bottom = get_cmap('Blues', 128)
 newcolors = vstack((top(linspace(0.5, 1, 128)),
-                       bottom(linspace(0.4, 1, 128))))
+                       bottom(linspace(0.5, 1, 128))))
 newcmp = ListedColormap(newcolors, name='OrangeBlue')
+cmap = plt.get_cmap(newcmp)
+colors = [cmap(i) for i in np.linspace(0, 1, n/2+1)]
 
 # Figure
-cmap = plt.get_cmap(newcmp)
-colors = [cmap(i) for i in np.linspace(0, 1, 4)]
+fig_kv7 = figure(2, figsize=(6,3))
 
-fig = figure(3, figsize=(9,3))
-
-# Panel A: threshold vs Na conductance density for varying AIS start position and length
-ax1 = subplot(131)
-slope_gna_proxshort, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[0,0,:]) 
-slope_gna_distshort, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[1,0,:]) 
-slope_gna_proxlong, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[0,1,:]) 
-slope_gna_distlong, _, _, _, _ = stats.linregress(log(gna_densities/ (siemens/meter**2)), thresholds_gna[1,1,:]) 
-print ('Slopes:')
-print ('Panel A')
-print ('light blue:', 'x1/2=', ais_geom[0,0] + ais_geom[0,1]/2, 'L=',  ais_geom[0,1], 'ka=', round(slope_gna_proxshort, 2), 'mV' )
-print ('light orange:', 'x1/2=', ais_geom[1,0] + ais_geom[1,1]/2, 'L=',  ais_geom[1,1], 'ka=', round(slope_gna_distshort, 2), 'mV' )
-print ('dark blue: ', 'x1/2=', ais_geom[2,0] + ais_geom[2,1]/2, 'L=',  ais_geom[2,1], 'ka=', round(slope_gna_proxlong, 2), 'mV')
-print ('dark orange: ',  'x1/2=', ais_geom[3,0] + ais_geom[3,1]/2, 'L=',  ais_geom[3,1],'ka=', round(slope_gna_distlong, 2), 'mV')
-
-semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[0,0,:], color=colors[2]) 
-semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[1,0,:], color=colors[1]) 
-semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[0,1,:], color=colors[3]) 
-semilogx(gna_densities/ (siemens/meter**2), thresholds_gna[1,1,:], color=colors[0]) 
+# Panel A: somatic threshold vs AIS middle position
+ax1 = subplot(121)
+for i in range(int(n/2)+1):
+    semilogx(x_mids/um, thresholds_soma[:,2*i], color=colors[i], label='%.0f S/$m^2$' %gms_label[2*i])
 ax1.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax1.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-ax1.set_yticks([-70,-60,-50,-40])
-ax1.set_yticklabels(['-70','-60','-50','-40'])
-xlabel('$g$ (S/$m^2$)')
-ylabel('$V_s$ (mV)')
-ylim(-70,-40)
+ax1.set_ylim(-75, -40)
+ax1.set_xlabel('$x_{1/2}$ ($\mu$m)')
+ax1.set_ylabel('$V_s$ (mV)')
 
-ax1.text(2300, -40,'A', fontsize=14, weight='bold')
+# legends
+lines = ax1.get_lines()
+legend1 = legend([lines[i] for i in [0,1]], ['0 S/$m^2$', '100 S/$m^2$', \
+                 '150 S/$m^2$'], loc='lower left', frameon=False, fontsize=8)
+legend2 = legend([lines[i] for i in [2,3]], ['200 S/$m^2$', '300 S/$m^2$'], loc='lower right', frameon=False, fontsize=8)
+ax1.add_artist(legend1)
+ax1.add_artist(legend2)
+ 
+ax1.text(9.5, -40,'A', fontsize=14, weight='bold')
 
-# Panel B: threshold vs AIS middle position for varying AIS length and Na conductance density
-ax2 = subplot(132)
-slope_mid_shortlow, _, _, _, _ = stats.linregress(log(x_mids_vals[1:]), thresholds_mid_shortlow[1:]) 
-slope_mid_shorthigh, _, _, _, _ = stats.linregress(log(x_mids_vals[1:]), thresholds_mid_shorthigh[1:])
-slope_mid_longlow, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longlow[3:])  
-slope_mid_longhigh, _, _, _, _ = stats.linregress(log(x_mids_vals[3:]), thresholds_mid_longhigh[3:]) 
-print ('Panel B')
-print ('light blue: gna = 3500', 'L=', lengths[1], 'ka=', round(slope_mid_shortlow, 2), 'mV')
-print ('light orange: gna = 3500', 'L=', lengths[3], 'ka=', round(slope_mid_longlow, 2), 'mV')
-print ('dark blue: gna = 5000', 'L=', lengths[1],'ka=', round(slope_mid_shorthigh, 2), 'mV')
-print ('dark orange: gna = 5000', 'L=', lengths[3],'ka=', round(slope_mid_longhigh, 2), 'mV')
-
-semilogx(x_mids_vals, thresholds_mid_shortlow, color=colors[2])
-semilogx(x_mids_vals, thresholds_mid_longlow, color=colors[1])
-semilogx(x_mids_vals, thresholds_mid_shorthigh, color=colors[3])
-semilogx(x_mids_vals, thresholds_mid_longhigh, color=colors[0])
+# Panel B: threshold at the end of the AIS vs AIS middle position
+ax2 = subplot(122)
+for i in range(int(n/2)+1):
+    semilogx(x_mids/um, thresholds_ais[:,2*i], color=colors[i])
 ax2.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax2.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-ax2.set_yticks([-70,-60,-50,-40])
-ax2.set_yticklabels(['-70','-60','-50','-40'])
-xlabel('$x_{1/2}$ ($\mu$m)', )
-ylim(-70,-40)
+#ax2.set_yticks([-75,-65,-55,-45,-35])
+#ax2.set_yticklabels(['-75','-65','-55','-45','-35'])
+ax2.set_ylim(-75, -40)
+ax2.set_xlabel('$x_{1/2}$ ($\mu$m)')
+ax2.set_ylabel('$V_a$ (mV)')
+ax2.legend(frameon=False, fontsize=8)
 
-ax2.text(6.25, -40,'B', fontsize=14, weight='bold')
+ax2.text(9.5, -40,'B', fontsize=14, weight='bold')
 
-# Panel C: threshold vs AIS length for varying AIS start position and Na conductance density
-
-ax3 = subplot(133)
-slope_len_distlow, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_distlow) 
-slope_len_proxhigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_proxhigh)
-slope_len_disthigh, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_disthigh)  
-slope_len_proxlow, _, _, _, _ = stats.linregress(log(lengths/um), thresholds_len_proxlow)
-print ('Panel C')
-print ('light blue: gna = 3500', 'x1/2=', x_mids_vals[3], 'ka=', round(slope_len_proxlow, 2), 'mV')
-print ('light orange: gna = 5000', 'x1/2=', x_mids_vals[3],'ka=', round(slope_len_proxhigh, 2), 'mV')
-print ('dark blue: gna = 3500', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_distlow, 2), 'mV')
-print ('dark orange: gna = 5000', 'x1/2=', x_mids_vals[5], 'ka=', round(slope_len_disthigh, 2), 'mV')
-
-semilogx(lengths/um, thresholds_len_proxhigh, color=colors[1])
-semilogx(lengths/um, thresholds_len_proxlow, color=colors[2])
-semilogx(lengths/um, thresholds_len_distlow, color=colors[3])
-semilogx(lengths/um, thresholds_len_disthigh, color=colors[0])
-ax3.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-ax3.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-ax3.set_yticks([-70,-60,-50,-40])
-ax3.set_yticklabels(['-70','-60','-50','-40'])
-xlabel('$L$ ($\mu$m)')
-ylim(-70,-40)
-
-ax3.text(6.25, -40,'C', fontsize=14, weight='bold')
-
-subplots_adjust(top=0.88, bottom=0.29, wspace=0.3)
+subplots_adjust(top=0.88, bottom=0.29, wspace=0.4)
 
 show()
-
-print ('Distal shift of a 40 um long AIS with high g (x1/2 from 25 to 30):', round(thresholds_mid_longhigh[5] - thresholds_mid_longhigh[4], 2), 'mV')
-
-
-
-
-
-
 
 
 

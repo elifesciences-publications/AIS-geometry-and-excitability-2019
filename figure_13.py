@@ -44,7 +44,6 @@ plot(deltas, corrections_num, 'k')
 ylabel('$F(\Delta/L)$', fontsize=14)
 xlabel('$\Delta/L$', fontsize=14)
 ylim(0,0.2)
-legend(frameon=False)
 
 tight_layout()
 

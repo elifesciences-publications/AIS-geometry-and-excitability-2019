@@ -1,193 +1,86 @@
-
 '''
 
-Pulse responses at the axon and soma, in a ball-and-stick model in the large soma regime and in a L5 pyramidal neuron (Hu and Bean 2018).
+A script to plot the relationship between the AIS diameter and the soma diameter.
+Measures of AIS diameter come from electron microscopy studies. AIS diameter is the 
 
 '''
-
 from __future__ import print_function
-from pylab import *
-from joblib import Parallel, delayed
-from shared.resistive_coupling.hu_bean_shared import *
-from shared.resistive_coupling.resistive_coupling_simulation import *
+from brian2 import *
+from scipy.stats import linregress
+from numpy.random import choice
 
-### DATA from Hu and Bean 2018
+import matplotlib.ticker
 
-## Example traces (injection point at 75 um)
+### Importing digitized datasets
+a_soma_sm, d_axon_sm = genfromtxt('data/figure_4/sasaki-murayama-1992-Fig2.csv', delimiter=',', skip_header=1).T
+d_soma_sp, d_axon_sp = loadtxt('data/figure_4/slower-powell-1979-Fig71.txt', skiprows = 1).T
+d_axon_cr, d_soma_cr = genfromtxt('data/figure_4/conradi-ronnevi-1977.csv', delimiter=',', skip_header=1).T
 
-dt = 0.02 # in ms
+# Sazaki-Murayama                                 
+d_soma_sm = sqrt(a_soma_sm/pi) # assuming a_soma_sm is indeed the area of the somatic membrane, as a sphere
 
-n_before = 50*5 # number of time steps before the pulse (= 50 kHz * duration in ms)
-n_after = 50*100 # number of time steps after the pulse
+### Data for population averages
+# De Zeeuw et al, 1990 (cat olivary cells)
+d_axon_dz = 1.1
+# Ruigrok et al, 1990 (cat olivary cells)
+d_soma_dz = 21.7
 
-distance,t,Vs,Va,Is,Ia = load_file('data/hu_and_bean_2018/100420 1-1 75um.abf')
+# Kosaka 1980 (rat CA3)
+d_axon_k = 1.24
+# Buckmaster 2012 (rat CA3) 
+d_soma_k = 20.9
 
+# Somogyu Hamori 1976 (rat Purkinje cell) 
+d_axon_sh_rat = 0.73
+# Takacs Hamori 1994 (rat Purkinje cell)
+d_soma_sh_rat = 21.88
 
-# Find places where there's an axonal but not somatic current pulse
-i = 1*((abs(Ia)>0.008) & (abs(Is)<0.008))
-start = where(diff(i) == 1)[0] +1
-end = where(diff(i) == -1)[0]
+# Palay and Chan-Palay 2012 (Cerebellar granule cells)
+d_axon_cgc = 0.2
+# Delvendahl et al 2015 (Cerebellar granule cells)
+d_soma_cgc = 5.9
 
-# Look for the smallest positive current pulse
-min_current = 1e10
-for i,j in zip(start,end):
-    if j-i>24000: # long pulse
-        current = median(Ia[i:j]) # average current
-        if (current>0) & (current<min_current):
-            vs = Vs[i-n_before:j+n_after]
-            va = Va[i-n_before:j+n_after]
-            min_current = current
-            
-current_example = min_current
+### Power law fits
+d_axon = array(list(d_axon_sm)+list(d_axon_sp)+list(d_axon_cr)+[d_axon_dz, d_axon_k, d_axon_sh_rat,d_axon_cgc])
+d_soma = array(list(d_soma_sm)+list(d_soma_sp)+list(d_soma_cr)+[d_soma_dz, d_soma_k, d_soma_sh_rat,d_soma_cgc])
+# Below: inter-set fits (just one point per data set)
+#d_axon = array([mean(d_axon_sm),mean(d_axon_sp),mean(d_axon_cr),d_axon_dz, d_axon_k, d_axon_sh_rat,d_axon_cgc])
+#d_soma = array([mean(d_soma_sm),mean(d_soma_sp),mean(d_soma_cr),d_soma_dz, d_soma_k, d_soma_sh_rat,d_soma_cgc])
 
-print ("EXAMPLE CELL:")
-print ("Smallest positive current pulse at the axonal bleb:", current, 'nA')
+d = linspace(5,50,100)
+offset = mean(log(d_axon)-4./3*log(d_soma))
+print ("Regression: d_AIS = ",exp(offset),"d_soma^(4/3)")
 
-# Resting potential calculated just before the pulse (not used)
-vs_rest = median(vs[:n_before])
-va_rest = median(va[:n_before])
+### Plot
+fig_diam = figure(figsize=(5,4))
+axes = subplot(111)
+# full datasets
+loglog(d_soma_sm,d_axon_sm,'o', color = 'darkorange',label='human motoneurons')
+loglog(d_soma_sp,d_axon_sp,'o', color='forestgreen', label='primate pyramidal and stellate cells')
+loglog(d_soma_cr,d_axon_cr,'o', color='darkblue', label='cat motoneuron')
+# averages
+loglog(d_soma_dz, d_axon_dz, 'X', color='deepskyblue', label='cat olivary cells', markersize=7)
+loglog(d_soma_k, d_axon_k, 's',  color='deepskyblue',label='rat CA3 pyramidal cells', markersize=7)
+loglog(d_soma_sh_rat, d_axon_sh_rat, '^',  color='deepskyblue',label='rat Purkinje cells', markersize=7)
+loglog(d_soma_cgc, d_axon_cgc, 'D',  color='deepskyblue',label='mouse granule cells', markersize=7)
+# electrical equivalence
+loglog(d, exp(offset + 4./3*log(d)),'k--', label='electrical equivalence')
+ylabel('AIS diameter ($\mu$m)')#, fontsize=20)
+xlabel('Soma diameter ($\mu$m)')#, fontsize=20)
+axes.xaxis.set_major_formatter(ScalarFormatter())
+axes.yaxis.set_major_formatter(ScalarFormatter())
+yticks([1, 2, 3, 4])#, fontsize = 16)
+xticks([10,20,30,40,50])#, fontsize = 16)
 
-## Rin at the start of the pulse
-
-distances = []
-Ra_short, Rs_short = [], []
-
-dt = 0.02 # in ms
-
-n_before = 50*5 # number of time steps before the pulse (= 50 kHz * duration in ms)
-
-print ('INPUT RESISTANCE vs DISTANCE')
-for distance,t,Vs,Va,Is,Ia in load_all_files():
-    print ("Distance from soma to axonal bleb: ",distance,"um")
-    # Find places where there's an axonal but not somatic current pulse
-    i = 1*((abs(Ia)>0.008) & (abs(Is)<0.008))
-    start = where(diff(i) == 1)[0] +1
-    end = where(diff(i) == -1)[0]
-
-    vss = []
-    vaa = []
-    current = []
-    for i,j in zip(start,end):
-        if j-i>24000: # long pulse
-            current.append(median(Ia[i:j]))
-            vss.append(Vs[i-n_before:j])
-            vaa.append(Va[i-n_before:j])
-
-    current = array(current)
-
-    try:
-        # Largest positive current
-        ind = where(current>0)[0]
-
-        i=ind[argmin(current[ind])]
-        current_pos = current[i]
-        vs_pos = vss[i]
-        va_pos = vaa[i]
-
-        print("Current pulse injected at the bleb:", current_pos, 'nA')
-
-    except ValueError:
-        print ("No current pulse found")
-        continue
-
-    n = len(vs_pos)
-
-    # Rest
-    vs_rest = median(vs_pos[:n_before])
-    va_rest = median(va_pos[:n_before])
-    # Resistances
-    R_input_short = (median(va_pos[n_before+10:n_before+20])-va_rest)/current_pos
-    Rs_input_short = (median(vs_pos[n_before+10:n_before+20])-vs_rest)/current_pos
-    R_axial = R_input_short - Rs_input_short
-    print ("Input resistance at axonal bleb:", R_input_short)
-    print ("Input resistance at soma:", Rs_input_short) 
-    print ("Axial resistance:", R_axial)
-    distances.append(distance)
-    Ra_short.append(R_input_short)
-    Rs_short.append(Rs_input_short)
-
-# Print sorted list
-#for d,Rp, Rn in sorted(zip(array(distances),Ra_short,Rs_short)):
-    #print (d,'um:',Rp, Rn)
-
-print ("Number of recordings used in the analysis:", len(Ra_short))
-
-### SIMULATION in the large neuron regime
-soma_diameter = 100*um
-current = current_example * 1e3 * pA # the same current pulse as in the example
-t_sim, x, vs75 , va75, v75 = pulse_simulation(soma_diameter, 75*um, current = current)
-
-### Figure
-
-fig_data = figure(1, figsize=(8,4))
-
-### SIMULATIONS
-
-# Panel A: traces for a pulse at 75 um
-ax1 = subplot(321)
-ax1.plot(t_sim/ms, va75/mV,'r',label='axon')
-ax1.plot(t_sim/ms, vs75/mV,'k',label='soma')
-ax1.set_title('Model')
-ax1.set_ylabel('V (mV)')
-ax1.legend(frameon=False, fontsize=8)
-ax1.set_ylim(-76, -66)
-ax1.set_xlim(0,300)
-ax1.text(-60, -65,'A', fontsize=14, weight='bold')
-
-# Panel B: the voltage gradient across the axon
-ax2 = subplot(323)
-ax2.plot(t_sim/ms,(va75-vs75)/mV,'forestgreen')
-ax2.set_xlabel('Time (ms)')
-ax2.set_ylabel('$\Delta$ V (mV)')
-ax2.set_ylim(-0.5,5)
-ax2.set_xlim(0,300)
-ax2.text(-60, 5.55,'B', fontsize=14, weight='bold')
-
-# Panel C: input (or axial) resistance at axon and soma vs distance, at 300 us
-distances_sim = linspace(10,200,10)*um
-results = Parallel(n_jobs = 4)(delayed(input_resistance)(soma_diameter,d) for d in distances_sim)
-
-Ra300us, Rs300us, Ra200ms, _ = zip(*results)
-ax3 = subplot(325)
-Ra300us, Rs300us = array(Ra300us), array(Rs300us)
-ax3.plot(distances_sim/um, Ra300us/Mohm, 'r', label='axon')
-ax3.plot(distances_sim/um, Rs300us/Mohm, 'k', label='soma')
-ax3.set_xlabel('Distance ($\mu$m)')
-ax3.set_ylabel('R (M$\Omega$)')
-ax3.set_xlim(0,210)
-ax3.set_ylim(-5,120)
-ax3.text(-42, 132,'C', fontsize=14, weight='bold')
-
-### DATA
-# Panel D: traces for a pulse at 75 um
-ax4 = subplot(322)
-t=arange(len(va))*dt
-ax4.plot(t,va, 'r', label='axon')
-ax4.plot(t,vs, 'k', label='soma')
-ax4.set_title('L5 pyramidal cell')
-ax4.set_ylim(-61,-51)
-ax4.set_xlim(-25,600)
-ax4.text(-110, -50,'D', fontsize=14, weight='bold')
-
-# Panel E: the voltage gradient across the axon
-ax5 = subplot(324)
-ax5.plot(t,va-vs, 'forestgreen')
-ax5.set_xlabel('Time (ms)')
-ax5.set_ylim(-0.5,3.5)
-ax5.set_xlim(-25,600)
-ax5.text(-110, 3.9,'E', fontsize=14, weight='bold')
-
-# Panel C: input (or axial) resistance at axon and soma vs distance, at 300 us
-ax6 = subplot(326)
-ax6.plot(distances, Ra_short, 'r.',label='axon')
-ax6.plot(distances, Rs_short, 'k.',label='soma')
-ax6.set_xlabel('Distance ($\mu$m)')
-ax6.set_xlim(0,210)
-ax6.set_ylim(-5,60)
-ax6.text(-28, 66.5,'F', fontsize=14, weight='bold')
+# legends
+lines = axes.get_lines()
+legend1 = legend([lines[i] for i in [0,1,2]], ['human motoneurons', 'primate pyramidal and stellate cells', \
+                 'cat motoneuron'], loc='upper left', frameon=False)
+legend2 = legend([lines[i] for i in [3,4,5,6,7]], ['cat olivary cells', 'rat CA3 pyramidal cells', 'rat Purkinje cells'\
+                 , 'mouse granule cells', 'electrical equivalence'], loc='lower right', frameon=False)
+axes.add_artist(legend1)
+axes.add_artist(legend2)
 
 tight_layout()
-subplots_adjust(hspace=0.7)
 
 show()
-

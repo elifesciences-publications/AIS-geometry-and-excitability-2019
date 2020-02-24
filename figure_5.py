@@ -1,186 +1,198 @@
 
-'''
 
-Presentation of a simple biophysical model of spike initiation in the AIS and how to use it.
+"""
 
-'''
+We compare the rheobase with the somatic voltage threshold and 
+how they vary with the leak conductance at the soma, the total Na conductance at the AIS and the amount of current injected at the AIS.
 
+"""
 from __future__ import print_function
 from brian2 import *
+from joblib import Parallel, delayed
+from matplotlib.collections import LineCollection
+from matplotlib.colors import ListedColormap, BoundaryNorm
+from shared.analysis import measure_current_threshold_no_VC, measure_voltage_threshold_no_VC, measure_input_resistance
 from shared.models import params_model_description, model_Na_Kv1
-from shared.analysis.trace_analysis import *
-import matplotlib.image as mpimg
-import matplotlib.patches as patches
 
+only_plotting = True # to plot the figure without running the simulations
+
+# Parameters
+n=4 
 defaultclock.dt = 0.005*ms
-
-### AIS geometry and parameters
-start =5.*um # AIS start position
+start = 5.*um # AIS start position
 end = 35.*um # AIS end position
-params = params_model_description
+resting_vm = -75.*mV # resting membrane potential
+params = params_model_description # model parameters
 
-### Model
-# The total conductances at the AIS is fixed:
-#neuron = model_Na_Kv1(params, -75.*mV, start, end, density=False, gna_tot=350.*nS, gk_tot=150.*nS, morpho=params.morpho)
+# A function to measure current and voltage thresholds
+def measure_different_thresholds(gna_ais, i_inj, gL_soma):
+    '''
+    A function to measure the charge, current and voltage thresholds at the soma. 
+    
+    Variables: the somatic leak conductance, the total Na conductance at the AIS and the amount of hyperpolarizing current injected at the AIS.
+    '''
 
-# The conductance densities at the AIS is fixed:
-neuron = model_Na_Kv1(params, -75.*mV, start, end, density=True, morpho=params.morpho)
+    # current threshold
+    neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk, gL_soma = gL_soma)
+    i_rheo = measure_current_threshold_no_VC(params, neuron, resting_vm, start, end, pulse_length = 50.*ms, i_inj = i_inj, plot_v = False)  
+    print ('Current threshold:', i_rheo)
+    
+    # voltage threshold
+    neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk, gL_soma = gL_soma)
+    vs, va, _, _, v0, v0_ais= measure_voltage_threshold_no_VC(params, neuron, resting_vm,start, end, i_rheo = i_rheo, pulse_length = 50.*ms, i_inj = i_inj) 
+    print ('Threshold:', vs)
+    
+    # input resistance
+    neuron = model_Na_Kv1(params, resting_vm, start, end, density=False, gna_tot=gna_ais, gk_tot=params.Gk)
+    rs,_,_ = measure_input_resistance(params, neuron, resting_vm)
+    print (rs)
+    
+    return i_rheo, vs, va, rs, v0, v0_ais
 
-M = StateMonitor(neuron, ('v','I_VC', 'INa', 'IK'), record = 0) # recording at the soma
-M_AIS = StateMonitor(neuron, ('v', 'm', 'h', 'n', 'INa', 'IK'), record = neuron.morphology.axon[end-1*um]) # recording at AIS end
+if only_plotting: # loading data to plot figure
+    data = load('figure_5.npz')
+    
+    gL_somas = data['arr_0']
+    gnas = data['arr_1']*nS
+    hyp_curr = data['arr_2']*nA
+    current_thresholds_gl = data['arr_3']*nA
+    current_thresholds_gna = data['arr_4']*nA
+    current_thresholds_hyp = data['arr_5']*nA
+    v_thresholds_gl = data['arr_6']*mV
+    v_thresholds_gna = data['arr_7']*mV
+    v_thresholds_hyp = data['arr_8']*mV
+    v_thresholds_ais_hyp = data['arr_9']*mV
+    v0_soma_gl = data['arr_10']*mV
+    v0_ais_gl = data['arr_11']*mV
+    v0_soma_gna = data['arr_12']*mV
+    v0_ais_gna = data['arr_13']*mV
+    v0_soma_hyp = data['arr_14']*mV
+    v0_ais_hyp = data['arr_15']*mV
+    
+else: # running simulations
+    # Variation of somatic leak conductance density
+    print ("changing gL")
+    gL_somas = linspace(1./40000., 1./1000., n) * (1./(ohm * cm**2))
+    
+    # run simulations with joblib
+    if __name__ == '__main__':
+        results_gl = Parallel(n_jobs = 4)(delayed(measure_different_thresholds)( 350.*nS, 0, gLs) for gLs in gL_somas)
+    
+    v_thresholds_gl = [results_gl[i][1] for i in range(n)] # voltage threshold at soma
+    current_thresholds_gl = [results_gl[i][0] for i in range(n)] # current threshold
+    rin_soma_gl = [results_gl[i][3] for i in range(n)] # input resistance at the soma
+    v0_soma_gl = [results_gl[i][4] for i in range(n)] # resting membrane potential at the soma
+    v0_ais_gl = [results_gl[i][5] for i in range(n)] # resting membrane potential at the AIS
+    
+    # Variation of Na total conductance at AIS
+    print ("changing Na conductance")
+    gnas = linspace(200.,500.,n)*nS
+    
+    # run simulations with joblib
+    if __name__ == '__main__':
+        results_gna = Parallel(n_jobs = 4)(delayed(measure_different_thresholds)( gna, 0, params.gL) for gna in gnas)
+    
+    v_thresholds_gna = [results_gna[i][1] for i in range(n)]# voltage threshold at soma
+    current_thresholds_gna = [results_gna[i][0] for i in range(n)]# current threshold
+    rin_soma_gna = [results_gna[i][3] for i in range(n)]# input resistance at the soma
+    v0_soma_gna = [results_gna[i][4] for i in range(n)]# resting membrane potential at the soma
+    v0_ais_gna = [results_gna[i][5] for i in range(n)]# resting membrane potential at the AIS
+    
+    # Variation of hyperpolarizing current injected at AIS end
+    print ("changing AIS current")
+    hyp_curr = linspace(-0.25, 0,n)*nA
+    
+    # run simulations with joblib
+    if __name__ == '__main__':
+        results_hyp = Parallel(n_jobs = 4)(delayed(measure_different_thresholds)( 450.*nS, i_hyp, params.gL) for i_hyp in hyp_curr)
+    
+    v_thresholds_hyp = [results_hyp[i][1] for i in range(n)]# voltage threshold at soma
+    current_thresholds_hyp = [results_hyp[i][0] for i in range(n)]# current threshold
+    v_thresholds_ais_hyp = [results_hyp[i][2] for i in range(n)]# voltage threshold at the AIS
+    rin_soma_hyp = [results_hyp[i][3] for i in range(n)]# input resistance at the soma
+    v0_soma_hyp = [results_hyp[i][4] for i in range(n)]# resting membrane potential at the soma
+    v0_ais_hyp = [results_hyp[i][5] for i in range(n)]# resting membrane potential at the AIS
+    
+    # Save the data in an npz file
+    savez('figure_6', gL_somas/(siemens/meter**2), gnas/nS, hyp_curr/nA, current_thresholds_gl/nA, current_thresholds_gna/nA, current_thresholds_hyp/nA,\
+                  v_thresholds_gl/mV, v_thresholds_gna/mV, v_thresholds_hyp/mV,\
+                  v_thresholds_ais_hyp/mV, v0_soma_gl/mV, v0_ais_gl/mV, v0_soma_gna/mV, v0_ais_gna/mV, v0_soma_hyp/mV, v0_ais_hyp/mV)
 
-### Simulation
-# Protocol to elicit an AP with fixed initial voltage
-neuron.V_VC[0] = -75.*mV
-neuron.VC_on[0] = 1
-run(20*ms)
-neuron.VC_on[0] = 0
-neuron.I_CC[0] = 1.5*nA
-run(2*ms)
-neuron.VC_on[0] = 0
-neuron.I_CC[0] = 0*amp 
-run(20*ms)
+### Figure 
 
-# Somatic AP features
-print ('SOMA')
+fcurrent = figure('Voltage threshold vs rheobase', figsize=(9.5,3))  
 
-i_spike = spike_onsets(M.v[0], criterion = 30*volt/second * defaultclock.dt, v_peak=-20 * mV)
+# Panel A: voltage and current threshold vs G
+i1_range = max(current_thresholds_gna)/nA * (-75.*mV - (-35.*mV))/(resting_vm - max(v_thresholds_gna))
+G_min = 200.
+G_max = 500.
+ax1 = fcurrent.add_subplot(131)
+ax2 = ax1.twinx()
 
-print ("Spike at time ", M.t[i_spike])
-print ("Spike onset:", M.v[0][i_spike])
-print ("Peak:", M.v[0][spike_peaks(M.v[0], v_peak=-20 * mV)[0]])
-print ("Onset rapidness:", max_phase_slope(M.v[0], v_peak=0*mV)[0]/defaultclock.dt)
-print ("Onset rapidness:", max_phase_slope(M.v[0], v_peak=-20*mV)[0]/defaultclock.dt)
+ax1.plot(gnas/nS, v_thresholds_gna/mV, 'cornflowerblue')
+ax1.plot(gnas/nS, v0_soma_gna/mV, 'k--')
+ax1.tick_params(axis='y', colors='cornflowerblue')
+ax1.set_ylim(-75, -35)
+ax1.set_xlim(G_min,G_max)
+ax1.set_ylabel('$V_{s}$ (mV)', color='cornflowerblue')
+ax1.set_xlabel('$G$ (nS)')
+ax1.text(G_min+(G_max-G_min)/15, -72,'$V_0$', fontsize=10)
 
-rise_time, spike_width, _, _, _, _ = spike_duration(M.v[0], onsets = i_spike, full=True)
-print ("Rise time:", rise_time*defaultclock.dt)
-print ("Spike width:", spike_width*defaultclock.dt)
-print ("Max dv/dt:", max_dv_dt(M.v[0], v_peak=-20 * mV)/defaultclock.dt)
+ax2.plot(gnas/nS, current_thresholds_gna/nA, color= 'darkblue')
+ax2.set_ylim(0, i1_range)
+ax2.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
+ax2.tick_params(colors='darkblue')
 
-half_height = (M.v[0][spike_peaks(M.v[0], v_peak=-20 * mV)[0]] + abs(M.v[0][i_spike]))/2 + M.v[0][i_spike]
-print ('Half height:', half_height)
-half_height_idx = where(M.v[0] > half_height )
-half_width = (half_height_idx[0][-1] - half_height_idx[0][0])*defaultclock.dt
-print ('Half width:', half_width)
+ax1.text((G_max-G_min)/3, -35,'A', fontsize=14, weight='bold')
 
-# AIS AP features
-print ('AIS')
+# Panel B: voltage and current threshold vs gL
+i2_range = min(current_thresholds_gl)/nA * (-75.*mV - (-35.*mV))/(resting_vm - max(v_thresholds_gl))
+gl_min = 0.25
+gl_max = 10.
+ax3 = fcurrent.add_subplot(132)
+ax4 = ax3.twinx()
 
-i_spike_ais = spike_onsets(M_AIS.v[0], criterion = 50*volt/second * defaultclock.dt, v_peak=-20 * mV)
+ax3.plot(gL_somas, v_thresholds_gl/mV, 'cornflowerblue')
+ax3.plot(gL_somas, v0_soma_gl/mV, 'k--')
+ax3.set_ylim(-75, -35)
+ax3.set_ylabel('$V_{s}$ (mV)', color='cornflowerblue')
+ax3.set_xlabel('$g_L$ (S/$m^2$)')
+ax3.tick_params(axis='y', colors='cornflowerblue')
+ax3.text(gl_min+(gl_max-gl_min)/15, -72,'$V_0$', fontsize=10)
 
-print ("Spike at time ",M_AIS.t[i_spike_ais[0]])
-print ("Spike onset:",M_AIS.v[0][i_spike_ais[0]])
-print ("Peak:", M_AIS.v[0][spike_peaks(M_AIS.v[0], v_peak=-20 * mV)[0]])
-print ("Onset rapidness:", max_phase_slope(M_AIS.v[0], v_peak=0*mV)[0]/defaultclock.dt)
-print ("Onset rapidness:", max_phase_slope(M_AIS.v[0], v_peak=-20*mV)[0]/defaultclock.dt)
+ax4.plot(gL_somas, current_thresholds_gl/nA, 'darkblue')
+ax4.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
+ax4.tick_params(colors='darkblue')
+ax4.set_xlim(gl_min,gl_max)
+ax4.set_ylim(0, i2_range)
 
-rise_time_ais, spike_width_ais, _, _, _, _ = spike_duration(M_AIS.v[0], onsets = i_spike_ais, full=True)
-print ("Rise time:", rise_time_ais*defaultclock.dt)
-print( "Spike width:", spike_width_ais*defaultclock.dt)
-print ("Max dv/dt:", max_dv_dt(M_AIS.v[0], v_peak=-20 * mV)/defaultclock.dt)
+ax3.text(-(gl_max-gl_min)/3, -35,'B', fontsize=14, weight='bold')
 
-half_height = (M_AIS.v[0][spike_peaks(M_AIS.v[0], v_peak=-20 * mV)[0]] + abs(M_AIS.v[0][i_spike]))/2 + M_AIS.v[0][i_spike]
-print ('Half height:', half_height)
-half_height_idx = where(M_AIS.v[0] > half_height )
-half_width = (half_height_idx[0][-1] - half_height_idx[0][0])*defaultclock.dt
-print ('Half width:', half_width)
+# Panel C: somatic and axonal voltage threshold and current threshold vs Ih
+i3_range = min(current_thresholds_hyp)/nA * (-75.*mV - (-35.*mV))/(-75.*mV - min(v_thresholds_hyp))
+ih_max = 0
+ih_min = -0.25
+ax5 = fcurrent.add_subplot(133)
+ax6 = ax5.twinx()
 
-# Plotting
-f1 = figure(1, figsize=(6, 10))
+ax5.plot(hyp_curr/nA, v_thresholds_hyp/mV, 'cornflowerblue', label='soma')
+ax5.plot(hyp_curr/nA, v_thresholds_ais_hyp/mV, '-.', color='cornflowerblue', label='AIS')
+ax5.set_ylim(-75, -35)
+ax5.set_xlim(ih_min, ih_max)
+ax5.set_ylabel('Threshold (mV)', color='cornflowerblue')
+ax5.set_xlabel('I (nA)')
+ax5.tick_params(axis='y', colors='cornflowerblue')
+ax5.legend(frameon=False, fontsize=8, loc='lower left')
 
-# Morphology
-ax0 = subplot(411)
-xlim(-12.5,12.5)
-ylim(-4.5,4.5)
-ax0.axis('off')
-ax0.add_patch(patches.Circle((3.5,-1.7), 1.2, color='black')) # soma
-ax0.add_patch(patches.Rectangle((-12.5, -2), 16, 0.6, color='black')) # dendrite
-ax0.add_patch(patches.Rectangle((4.5, -1.7), 7, 0.1, color='black')) # axon
-ax0.add_patch(patches.Rectangle((5, -1.7), 0.5, 0.1, color='red')) # AIS
-ax0.text(-12.5, -3,'1000 $\mu$m') # dendrite length
-ax0.text(-14.5, -1.95,'6 $\mu$m') # dendrite diam
-ax0.text(9, -3,'500 $\mu$m') # axon length
-ax0.text(11.75, -1.9,'1 $\mu$m') # axon diam
-ax0.text(2.25, 0.2,'30 $\mu$m') # soma diam
-ax0.text(5, -3,'AIS', color='red') # AIS label
-ax0.text(5, -4,'L = 30 $\mu$m', color='red') 
-ax0.text(5, -5,'$\Delta$ = 5 $\mu$m', color='red') # soma diam
+ax6.plot(hyp_curr/nA, current_thresholds_hyp/nA, 'darkblue') 
+ax6.set_ylim(0,  i3_range)
+ax6.set_ylabel('$I_{r}$ (nA)', color='darkblue') 
+ax6.tick_params(colors='darkblue')
 
-# Panel A: equilibrium functions of the gating variables
-ax1 = subplot(424)
-ax1.plot(M_AIS.t/ms, M_AIS.m[0],  color='forestgreen', label='m')
-ax1.plot(M_AIS.t/ms, M_AIS.h[0],  color='darkblue', label='h')
-ax1.plot(M_AIS.t/ms, M_AIS.n[0]**8, 'darkorange', label='n$^8$')
-ax1.set_xlim(20,23)
-ax1.set_ylim(-0.05,1.05)
-ax1.set_xlabel('Time (ms)')
-ax1.set_xticks([20,21,22,23])
-ax1.legend(frameon=False, fontsize=8)
-ax1.text(19,1.05,'B', fontsize=14, weight='bold')
+ax5.text(ih_min + (ih_min-ih_max)/3, -35,'C', fontsize=14, weight='bold')
 
-# Panel B: time course of the gating variables at AIS end
-ax2 = subplot(423)
-v = linspace(params.EL-25.*mV,20*mV,105)
-minf = 1/(1+exp(-(v-params.Va)/params.Ka))
-hinf = 1/(1+exp((v-params.Vh)/params.Kh))
-ninf = 1/(1+exp(-(v-params.Vn)/params.Kn))
-ninf8 = (1/(1+exp(-(v-params.Vn)/(params.Kn))))**8
-ax2.plot(v/mV, minf, color='forestgreen', label='$m_\infty$')
-ax2.plot(v/mV, hinf, color='darkblue', label='$h_\infty$')
-ax2.plot(v/mV, ninf8,'darkorange',  label='$n_\infty^8$')
-ax2.set_xlabel('V (mV)')#, fontsize=14)
-ax2.set_xlim(-100,20)
-ax2.set_ylim(-0.05,1.05)
-ax2.legend(loc='lower left', frameon=False, fontsize=8)
-ax2.text(-140,1.05,'A', fontsize=14, weight='bold')
-
-# Panel C: AP at AIS end and soma
-ax3 = subplot(425)
-ax3.plot(M.t/ms, M.v[0]/mV, 'k', label='soma') 
-ax3.plot(M_AIS.t/ms, M_AIS.v[0]/mV, 'r', label='AIS end')
-ax3.set_ylabel('V (mV)')
-ax3.set_xlim(20,23)
-ax3.set_ylim(-75, 50)
-ax3.set_xlabel('Time (ms)')
-ax3.set_xticks([20,21,22,23])
-ax3.legend(frameon=False, fontsize=8)
-ax3.text(19,50,'C', fontsize=14, weight='bold')
-
-# Panel D: phase plot of the AP at AIS end and soma
-ax4 = subplot(426)
-t = M.t<30*ms
-ax4.plot(M.v[0][t]/mV, diff(M.v[0])[t[:-1]]/defaultclock.dt, 'k')
-ax4.plot(M_AIS.v[0][t]/mV, diff(M_AIS.v[0])[t[:-1]]/defaultclock.dt, 'r')
-ax4.set_xlim(-75, 50)
-ax4.set_ylim(-200,2500)
-ax4.set_ylabel('dV/dt (V/s)')
-ax4.set_xlabel('V (mV)')
-ax4.text(-117, 2500,'D', fontsize=14, weight='bold')
-
-# Panel E: Na and Kv1 currents at AIS
-ax5 = subplot(427)
-ax5.plot(M_AIS.t/ms, M_AIS.INa[0], 'r', label='Na')
-ax5.plot(M_AIS.t/ms, -M_AIS.IK[0], 'r--', label='-K')
-ax5.set_xlim(20,23)
-ax5.set_ylim(-5, 100)
-ax5.set_ylabel('Current (pA/$\mu$ m$^2$)')
-ax5.set_xlabel('Time (ms)')
-ax5.set_xticks([20,21,22,23])
-ax5.legend(frameon=False, fontsize=8)
-ax5.text(19, 100,'E', fontsize=14, weight='bold')
-
-# Panel F: Na and Kv1 currents at soma
-ax6 = subplot(428)
-ax6.plot(M.t/ms, M.INa[0], 'k', label='Na')
-ax6.plot(M.t/ms, -M.IK[0], 'k--', label='-K')
-ax6.set_xlim(20,23)
-ax6.set_ylim(-0.5, 10)
-ax6.set_ylabel('Current (pA/$\mu$ m$^2$)')
-ax6.set_xlabel('Time (ms)')
-ax6.set_xticks([20,21,22,23])
-ax6.legend(frameon=False, fontsize=8)
-ax6.text(19, 10,'F', fontsize=14, weight='bold')
-
-tight_layout()
+subplots_adjust(top=0.88, bottom=0.29, left=0.075,right=0.93,hspace=0.2,wspace=0.65)
 
 show()
+
+

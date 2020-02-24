@@ -1,164 +1,211 @@
 
-"""
-AIS geometry and excitability, section 3: "Non-sodium axonal currents" (Figure 12)
 
-Effect of a hyperpolarizing current on the resting membrane potential and the voltage threshold
-in a point AIS. 
+"""
+AIS geometry and excitability, "Impact of the distal axon".
+
+A script to plot the figure 14.
+
+Extended AIS in a larger neuron.
 
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold, calculate_resting_state
+from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
-
-only_plotting = True # to plot the figure without running the simulations
+from scipy import stats
 
 # Parameters
 defaultclock.dt = 0.005*ms
-n = 5
-m = 5
-params = params_model_description #params_all
-ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
-starts = linspace(10., 30., n)*um # AIS start positions
-GNa = 500.*nS # total NA conductance in the AIS
+params = params_model_description
+GNa = 400.*nS # total Na conductance at the AIS
 
-### SIMULATIONS in the biophysical model
+### Figure 
 
-if only_plotting: # loading data
-    data = load('figure_12.npz')
-    starts = data['arr_0']*um
-    inj_currents= data['arr_1']*nA
-    thresholds_soma = data['arr_2']*1e-3
-    thresholds_ais = data['arr_3']*1e-3
-    v_rest_soma = data['arr_4']*1e-3
-    v_rest_ais = data['arr_5']*1e-3
-    delta_v_rest = data['arr_6']*1e-3
-else: # running the simulations
-    # A function to measure the threshold at the soma and at the AIS when a hyperpolarizing current is injected at the AIS
-    def BIO_model_in_CC_Kv(resting_vm, ais_start, ais_end, i_inj, gna_tot):
-        defaultclock.dt = 0.005*ms
-        pulse_length = 50.*ms
-
-        # current threshold
-        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot)
-        i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
-                                           ais_end=ais_end, pulse_length=pulse_length, i_inj=i_inj)  
-        print ('Rheobase:', i_rheo)
-            
-        # voltage threshold
-        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot = gna_tot, density=False)
-        vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
-                                           ais_end=ais_end, i_rheo = i_rheo, pulse_length=pulse_length, i_inj=i_inj)
-        print('Thresholds: soma:', vs, ', AIS:', va)
-        
-        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot=gna_tot,  density=False)
-        t, v_soma, _, v_ais = calculate_resting_state(neuron, ais_start, ais_end, i_inj)
-    
-        return i_rheo, vs, va, t, v_soma, v_ais
-    
-    inj_currents = linspace(0., -400, m)*pA # injected hyperpolarizing current in the AIS
-    
-    # Measuring the thresholds
-    if __name__ == '__main__':
-        traces = Parallel(n_jobs = 5)(delayed(BIO_model_in_CC_Kv)(-75.*mV, start, start, i_inj, GNa) for start in starts for i_inj in inj_currents)
-    
-    # Re-arranging the array
-    thresholds_soma = zeros((n,m))
-    thresholds_ais = zeros((n,m))
-    thresholds_ais_pulse = zeros((n,m))
-    v_rest_soma = zeros((n,m))
-    v_rest_ais = zeros((n,m))
-    delta_v_rest = zeros((n,m))
-    
-    for i in range(n):
-        for j in range(m):
-            thresholds_soma[i,j] = traces[m*i+j][1]*1e3
-            thresholds_ais[i,j] = traces[m*i+j][2]*1e3
-            v_rest_soma[i,j] = mean(traces[m*i+j][4][int(10.*ms/defaultclock.dt):int(19.*ms/defaultclock.dt)])
-            v_rest_ais[i,j] = mean(traces[m*i+j][5][int(10.*ms/defaultclock.dt):int(19.*ms/defaultclock.dt)])
-            delta_v_rest[i,j] = v_rest_ais[i,j] - v_rest_soma[i,j]
-    
-    # Save the data in a npz file
-    savez('figure_12', starts/um, inj_currents/nA, thresholds_soma/mV, thresholds_ais/mV, v_rest_soma/mV, v_rest_ais/mV, delta_v_rest/mV)
-        
-### Plots
 # Custom colormap
 top = get_cmap('Oranges_r', 128)
 bottom = get_cmap('Blues', 128)
 newcolors = vstack((top(linspace(0.5, 1, 128)),
-                       bottom(linspace(0.5, 1, 128))))
+                       bottom(linspace(0.4, 1, 128))))
 newcmp = ListedColormap(newcolors, name='OrangeBlue')
 cmap = plt.get_cmap(newcmp)
-colors = [cmap(i) for i in np.linspace(0, 1, m)]
+colors = [cmap(i) for i in np.linspace(0, 1, 4)]
 
-# Figure
+fig = figure('Distal axon', figsize=(6,5))
 
-starts_label = starts/um
-inj_curr_label = inj_currents/pA
+### PANEL A: large neuron
 
-fig_hyp = figure(2, figsize=(6,5))
+# loading data
+data = load('figure_12a.npz')
+starts = data['arr_0']*um
+starts_large = data['arr_1']*um
+length = data['arr_2']*um
+scaling = data['arr_3']
+thresholds = data['arr_4']*1e3
+thresholds_large = data['arr_5']*1e3
 
-# Panel A: resting membrane potential at the soma and AIS vs injected current
-ax1 = subplot(221)
-ax1.plot(abs(inj_currents)/pA, v_rest_soma[3,:], 'k', label = 'soma') 
-ax1.plot(abs(inj_currents)/pA, v_rest_ais[3,:], 'k-.', label = 'AIS')  
-ax1.set_ylim(-110, -70)
-ax1.set_xlabel('| I |  (pA)')
-ax1.set_ylabel('$V$ (mV)')
-ax1.legend(frameon=False, fontsize=8)
+length_large = sqrt(scaling) * length
 
-ax1.text(-175, -70,'A', fontsize=14, weight='bold')
+x_mids = starts+length/2 # AIS middle position original neuron
+x_mids_large = starts_large+length_large/2 # AIS middle position large neuron
 
-print ('panel A: AIS starts at %0.1f' %starts_label[3], 'um')
+# Slopes
+slopes, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds)
+slopes_large, _, _, _, _ = stats.linregress(-log(x_mids_large/um), thresholds_large)
 
-# Panel B: threshold at the soma and teh AIS vs injected current
-ax4 = subplot(222)
-ax4.plot(abs(inj_currents)/pA, thresholds_soma[3,:], 'k') 
-ax4.plot(abs(inj_currents)/pA, thresholds_ais[3,:], 'k-.')  
-ax4.set_yticks([-75,-65,-55,-45])
-ax4.set_yticklabels(['-75','-65','-55','-45'])
-ax4.set_ylim(-75, -45)
-ax4.set_xlabel('| I |  (pA)')
-ax4.set_ylabel('Threshold (mV)')
+print ('Panel A: large neuron')
+print ('Slopes:')
+print('Original:', slopes, 'mV')
+print('Large neuron:', slopes_large, 'mV')
 
-ax4.text(-160, -45,'B', fontsize=14, weight='bold')
+ax1 = fig.add_subplot(221)
 
-print ('panel B: AIS starts at %0.1f' %starts_label[3], 'um')
+ax1.semilogx(x_mids/um, thresholds, color=colors[3], label='original')#'darkblue')
+ax1.semilogx(x_mids_large/um, thresholds_large, color=colors[2], label='large neuron')
+ax1.semilogx(x_mids/um, thresholds + (5./2)*log(scaling), '--', color=colors[3], label='expected shift')
+ax1.set_ylabel('$V_s$ (mV)') 
+ax1.set_xlabel('$x_{1/2}$ ($\mu$m)' )
+ax1.set_ylim(-75,-40)
+ax1.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+ax1.xaxis.set_minor_formatter(ScalarFormatter())
+ax1.legend(frameon=False, fontsize=8, loc='upper right')
 
-# Panel C: difference in threshold vs difference in resting membrane potential
-ax3 = subplot(223)
-ax3.plot(linspace(delta_v_rest[-1,-1], delta_v_rest[0,0], 20), linspace(delta_v_rest[-1,-1], delta_v_rest[0,0], 20) + params.Ka/mV, '--', color='k', label='theory')
-for i in range(int(m/2)+1):
-    ax3.plot(delta_v_rest[:,2*i], thresholds_ais[:,2*i] - thresholds_soma[:,2*i], color=colors[2*i])
-ax3.set_xlabel('$\Delta V$ (mV)')
-ax3.set_ylabel('$\Delta$ Threshold (mV)')
-ax3.set_ylim(-12.5, 7.5)
-ax3.set_xlim(-17.5, 2.5)
-ax3.legend(frameon=False, fontsize=8)
+ax1.text(7.5, -40,'A', fontsize=14, weight='bold')
 
-ax3.text(-24.5, 7.5,'C', fontsize=14, weight='bold')
+### PANEL B: myelin
 
-# Panel D: threshold at the soma and AIS vs AIS position for different injected currents
-ax2 = subplot(224)
-for i in range(int(m/2)+1):
-    semilogx(starts/um, thresholds_ais[:,2*i], '-.', color=colors[2*i])
-    semilogx(starts/um, thresholds_soma[:,2*i], color=colors[2*i], label='%.0f pA' %inj_curr_label[2*i])
+# loading data
+data = load('figure_12b1.npz')
+starts = data['arr_0']*um
+length = data['arr_1']*um
+thresholds = data['arr_2']*mV
+thresholds_myelin = data['arr_3']*mV
+
+x_mids = starts+length/2 # AIS middle position original neuron
+
+# Slopes
+slopes, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds)
+slopes_myelin, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds_myelin)
+
+print ('Panel B: myelin and long axon')
+print ('Slopes:')
+print('Myelin:', slopes_myelin, 'mV')
+print('Difference myelin and original:', (thresholds-thresholds_myelin)/volt, 'mV')
+
+ax2 = fig.add_subplot(222)
+
+ax2.semilogx(x_mids/um, thresholds, color=colors[3], label='original')
+ax2.semilogx(x_mids/um, thresholds_myelin,color=colors[2], label='myelin')
+ax2.set_ylim(-75,-40)
 ax2.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-ax2.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-ax2.set_yticks([-75,-65,-55,-45])
-ax2.set_yticklabels(['-75','-65','-55','-45'])
-ax2.set_ylim(-75, -45)
-#ax2.set_xlim(1,41)
-ax2.set_xlabel('$\Delta$ ($\mu$m)')
-ax2.set_ylabel('Threshold (mV)')
+ax2.xaxis.set_minor_formatter(ScalarFormatter())
+
+### PANEL B: long axon
+
+# loading data
+data = load('figure_12b2.npz')
+starts = data['arr_0']*um
+length = data['arr_1']*um
+thresholds = data['arr_2']*mV
+thresholds_long = data['arr_3']*mV
+
+x_mids = starts+length/2 # AIS middle position original neuron
+
+# Slopes
+slopes, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds)
+slopes_long, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds_long)
+
+print('Long:', slopes_long, 'mV')
+
+#ax3 = fig.add_subplot(323)
+
+ax2.semilogx(x_mids/um, thresholds_long, '--', color=colors[0], label='long axon')
+#ax2.semilogx(x_mids/um, thresholds, 'darkblue')
+ax2.set_ylim(-75,-40)
+ax2.set_xlabel('$x_{1/2}$ ($\mu$m)' )
+ax2.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+ax2.xaxis.set_minor_formatter(ScalarFormatter())
 ax2.legend(frameon=False, fontsize=8)
 
-ax2.text(6.5, -45,'D', fontsize=14, weight='bold')
+ax2.text(10, -40,'B', fontsize=14, weight='bold')
+
+
+### PANEL C: branching after the AIS
+
+# loading data
+data = load('figure_12c.npz')
+starts = data['arr_0']*um
+length = data['arr_1']*um
+thresholds = data['arr_2']*mV
+thresholds_rall = data['arr_3']*mV
+thresholds_emp = data['arr_4']*mV
+
+x_mids = starts+length/2 # AIS middle position original neuron
+
+# Slopes
+slopes, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds)
+slopes_rall, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds_rall)
+slopes_emp, _, _, _, _ = stats.linregress(-log(x_mids/um), thresholds_emp)
+
+print ('Panel C: branched')
+print ('Slopes:')
+print('3/2:', slopes_rall, 'mV')
+print('5/2:', slopes_emp, 'mV')
+
+ax4 = fig.add_subplot(223)
+
+ax4.semilogx(x_mids/um, thresholds,color=colors[3], label='original')
+ax4.semilogx(x_mids/um, thresholds_emp, color=colors[2], label='branched, $p$ = 5/2')
+ax4.semilogx(x_mids/um, thresholds_rall, '--', color=colors[0], label='branched, $p$ = 3/2')
+ax4.set_ylim(-75,-40)
+ax4.set_ylabel('$V_s$ (mV)') 
+ax4.set_xlabel('$x_{1/2}$ ($\mu$m)' )
+ax4.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+ax4.xaxis.set_minor_formatter(ScalarFormatter())
+ax4.legend(frameon=False, fontsize=8)
+
+ax4.text(9.5, -40,'C', fontsize=14, weight='bold')
+
+### PANEL D: axo-dendritic neuron
+
+# loading data
+data = load('figure_12d.npz')
+starts = data['arr_0']*um
+length = data['arr_1']*um
+axial_resistance = data['arr_2']*Mohm
+axial_resistance_axo_dend = data['arr_3']*Mohm
+thresholds = data['arr_4']*mV
+thresholds_axo_dend = data['arr_5']*mV
+
+# Slopes
+slopes, _, _, _, _ = stats.linregress(-log(axial_resistance/Mohm), thresholds)
+slopes_axo_dend, _, _, _, _ = stats.linregress(-log(axial_resistance_axo_dend/Mohm), thresholds_axo_dend)
+
+print ('Panel D: axo-dendritic')
+print ('Slopes:')
+print('Axo-dend:', slopes_axo_dend, 'mV')
+
+ax5 = fig.add_subplot(224)
+
+ax5.semilogx(axial_resistance/Mohm, thresholds,color=colors[3], label='original')
+ax5.semilogx(axial_resistance_axo_dend/Mohm, thresholds_axo_dend, color=colors[2], label='axo-dendritic neuron')
+ax5.set_ylim(-75,-40)
+ax5.set_xlabel('$R_a$ (M$\Omega$)') 
+ax5.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+ax5.xaxis.set_minor_formatter(ScalarFormatter())
+ax5.legend(frameon=False, fontsize=8)
+
+ax5.text(8.75, -40,'D', fontsize=14, weight='bold')
+
 
 tight_layout()
 
-show()
+show()   
+ 
+
+
+
+
 
 

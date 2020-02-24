@@ -1,86 +1,89 @@
 
-
 """
-AIS geometry and excitability, section 3: "Non-sodium axonal currents" (Figure 11)
+AIS geometry and excitability, section 3: "Non-sodium axonal currents" (Figure 12)
 
-Extended AIS with Kv7 channels in the distal half of the AIS.
+Effect of a hyperpolarizing current on the resting membrane potential and the voltage threshold
+in a point AIS. 
 
 """
 from __future__ import print_function
 from brian2 import *
-from shared import params_model_description, model_Na_Kv1_Kv7, measure_current_threshold, measure_voltage_threshold
+from shared import params_model_description, model_Na_Kv1, measure_current_threshold, measure_voltage_threshold, calculate_resting_state
 from joblib import Parallel, delayed
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
-from scipy import stats
 
 only_plotting = True # to plot the figure without running the simulations
 
 # Parameters
 defaultclock.dt = 0.005*ms
-
-n=7
-params = params_model_description#params_all
+n = 5
+m = 5
+params = params_model_description #params_all
 ra = 4.*params.Ri/(pi*params.axon_diam**2) # axial resistance per unit length
-length = 30.*um # AIS length
-GNa = 500.*nS # total Na conductance at the AIS
+starts = linspace(10., 30., n)*um # AIS start positions
+GNa = 500.*nS # total NA conductance in the AIS
 
 ### SIMULATIONS in the biophysical model
 
 if only_plotting: # loading data
     data = load('figure_11.npz')
     starts = data['arr_0']*um
-    gms = data['arr_1']*nS
-    thresholds_soma = data['arr_2']*mV
-    thresholds_ais = data['arr_3']*mV
-
-else: # running simulations
-    # A function to measure the threshold as a function of AIS position, length and Kv7 conductance at the AIS
-    def BIO_model_in_CC_Kv7(resting_vm, ais_start, ais_end, gna_tot, gm_tot):
+    inj_currents= data['arr_1']*nA
+    thresholds_soma = data['arr_2']*1e-3
+    thresholds_ais = data['arr_3']*1e-3
+    v_rest_soma = data['arr_4']*1e-3
+    v_rest_ais = data['arr_5']*1e-3
+    delta_v_rest = data['arr_6']*1e-3
+else: # running the simulations
+    # A function to measure the threshold at the soma and at the AIS when a hyperpolarizing current is injected at the AIS
+    def BIO_model_in_CC_Kv(resting_vm, ais_start, ais_end, i_inj, gna_tot):
         defaultclock.dt = 0.005*ms
         pulse_length = 50.*ms
-        
+
         # current threshold
-        neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
-        i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,pulse_length = pulse_length)  
+        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot)
+        i_rheo = measure_current_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
+                                           ais_end=ais_end, pulse_length=pulse_length, i_inj=i_inj)  
         print ('Rheobase:', i_rheo)
             
         # voltage threshold
-        neuron = model_Na_Kv1_Kv7(params, resting_vm, Na_start = ais_start, Na_end = ais_end, density=False, gna_tot=gna_tot, gm_tot = gm_tot)
-        vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, ais_end=ais_end,\
-                                                 i_rheo = i_rheo, pulse_length = pulse_length)
-        print ('Thresholds: soma:', vs, ', AIS:', va)
+        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot = gna_tot, density=False)
+        vs, va, _, _ = measure_voltage_threshold(params=params, neuron=neuron, resting_vm=resting_vm, ais_start=ais_start, \
+                                           ais_end=ais_end, i_rheo = i_rheo, pulse_length=pulse_length, i_inj=i_inj)
+        print('Thresholds: soma:', vs, ', AIS:', va)
         
-        return i_rheo, vs, va
-
-    starts = linspace(0., 30., n)*um # AIS start positions
-    gm_densities = linspace(0, 300., n)*(siemens/meter**2) # Kv7 conductance density at the AIS
-    gms = gm_densities * (pi*(length/2)*params.axon_diam) # corresponding total Kv7 conductance at the AIS
+        neuron = model_Na_Kv1(params, resting_vm, Na_start = ais_start, Na_end = ais_end, gna_tot=gna_tot,  density=False)
+        t, v_soma, _, v_ais = calculate_resting_state(neuron, ais_start, ais_end, i_inj)
     
-    # Measuring the threshold
+        return i_rheo, vs, va, t, v_soma, v_ais
+    
+    inj_currents = linspace(0., -400, m)*pA # injected hyperpolarizing current in the AIS
+    
+    # Measuring the thresholds
     if __name__ == '__main__':
-        traces = Parallel(n_jobs = 5)(delayed(BIO_model_in_CC_Kv7)(-75.*mV, start, start+length, GNa, gm) for start in starts for gm in gms)
-    
-    thresholds_soma = zeros((n,n)) # voltage threshold at the soma
-    thresholds_ais = zeros((n,n)) # voltage threshold at the AIS
+        traces = Parallel(n_jobs = 5)(delayed(BIO_model_in_CC_Kv)(-75.*mV, start, start, i_inj, GNa) for start in starts for i_inj in inj_currents)
     
     # Re-arranging the array
+    thresholds_soma = zeros((n,m))
+    thresholds_ais = zeros((n,m))
+    thresholds_ais_pulse = zeros((n,m))
+    v_rest_soma = zeros((n,m))
+    v_rest_ais = zeros((n,m))
+    delta_v_rest = zeros((n,m))
+    
     for i in range(n):
-        for j in range(n):
-            thresholds_soma[i,j] = traces[n*i+j][1]*1e3
-            thresholds_ais[i,j] = traces[n*i+j][2]*1e3
+        for j in range(m):
+            thresholds_soma[i,j] = traces[m*i+j][1]*1e3
+            thresholds_ais[i,j] = traces[m*i+j][2]*1e3
+            v_rest_soma[i,j] = mean(traces[m*i+j][4][int(10.*ms/defaultclock.dt):int(19.*ms/defaultclock.dt)])
+            v_rest_ais[i,j] = mean(traces[m*i+j][5][int(10.*ms/defaultclock.dt):int(19.*ms/defaultclock.dt)])
+            delta_v_rest[i,j] = v_rest_ais[i,j] - v_rest_soma[i,j]
     
-    # Save the data to a npz file
-    savez('figure_11', starts/um, gms/nS, thresholds_soma/mV, thresholds_ais/mV)
-    
+    # Save the data in a npz file
+    savez('figure_12', starts/um, inj_currents/nA, thresholds_soma/mV, thresholds_ais/mV, v_rest_soma/mV, v_rest_ais/mV, delta_v_rest/mV)
+        
 ### Plots
-x_mids = starts+length/2 # AIS middle position
-gms_label = gms/(pi*(length/2)*params.axon_diam) / (siemens/meter**2) 
-
-for i in range(len(gms)):
-    slope, _, _, _, _ = stats.linregress(log(x_mids/um), thresholds_ais[:,i])
-    print ('Kv7 density:', gms_label[i], ', slope:', slope)
-
 # Custom colormap
 top = get_cmap('Oranges_r', 128)
 bottom = get_cmap('Blues', 128)
@@ -88,52 +91,74 @@ newcolors = vstack((top(linspace(0.5, 1, 128)),
                        bottom(linspace(0.5, 1, 128))))
 newcmp = ListedColormap(newcolors, name='OrangeBlue')
 cmap = plt.get_cmap(newcmp)
-colors = [cmap(i) for i in np.linspace(0, 1, n/2+1)]
+colors = [cmap(i) for i in np.linspace(0, 1, m)]
 
 # Figure
-fig_kv7 = figure(2, figsize=(6,3))
 
-# Panel A: somatic threshold vs AIS middle position
-ax1 = subplot(121)
-for i in range(int(n/2)+1):
-    semilogx(x_mids/um, thresholds_soma[:,2*i], color=colors[i], label='%.0f S/$m^2$' %gms_label[2*i])
-ax1.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-ax1.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-ax1.set_ylim(-75, -40)
-ax1.set_xlabel('$x_{1/2}$ ($\mu$m)')
-ax1.set_ylabel('$V_s$ (mV)')
+starts_label = starts/um
+inj_curr_label = inj_currents/pA
 
-# legends
-lines = ax1.get_lines()
-legend1 = legend([lines[i] for i in [0,1]], ['0 S/$m^2$', '100 S/$m^2$', \
-                 '150 S/$m^2$'], loc='lower left', frameon=False, fontsize=8)
-legend2 = legend([lines[i] for i in [2,3]], ['200 S/$m^2$', '300 S/$m^2$'], loc='lower right', frameon=False, fontsize=8)
-ax1.add_artist(legend1)
-ax1.add_artist(legend2)
- 
-ax1.text(9.5, -40,'A', fontsize=14, weight='bold')
+fig_hyp = figure(2, figsize=(6,5))
 
-# Panel B: threshold at the end of the AIS vs AIS middle position
-ax2 = subplot(122)
-for i in range(int(n/2)+1):
-    semilogx(x_mids/um, thresholds_ais[:,2*i], color=colors[i])
+# Panel A: resting membrane potential at the soma and AIS vs injected current
+ax1 = subplot(221)
+ax1.plot(abs(inj_currents)/pA, v_rest_soma[3,:], 'k', label = 'soma') 
+ax1.plot(abs(inj_currents)/pA, v_rest_ais[3,:], 'k-.', label = 'AIS')  
+ax1.set_ylim(-110, -70)
+ax1.set_xlabel('| I |  (pA)')
+ax1.set_ylabel('$V$ (mV)')
+ax1.legend(frameon=False, fontsize=8)
+
+ax1.text(-175, -70,'A', fontsize=14, weight='bold')
+
+print ('panel A: AIS starts at %0.1f' %starts_label[3], 'um')
+
+# Panel B: threshold at the soma and teh AIS vs injected current
+ax4 = subplot(222)
+ax4.plot(abs(inj_currents)/pA, thresholds_soma[3,:], 'k') 
+ax4.plot(abs(inj_currents)/pA, thresholds_ais[3,:], 'k-.')  
+ax4.set_yticks([-75,-65,-55,-45])
+ax4.set_yticklabels(['-75','-65','-55','-45'])
+ax4.set_ylim(-75, -45)
+ax4.set_xlabel('| I |  (pA)')
+ax4.set_ylabel('Threshold (mV)')
+
+ax4.text(-160, -45,'B', fontsize=14, weight='bold')
+
+print ('panel B: AIS starts at %0.1f' %starts_label[3], 'um')
+
+# Panel C: difference in threshold vs difference in resting membrane potential
+ax3 = subplot(223)
+ax3.plot(linspace(delta_v_rest[-1,-1], delta_v_rest[0,0], 20), linspace(delta_v_rest[-1,-1], delta_v_rest[0,0], 20) + params.Ka/mV, '--', color='k', label='theory')
+for i in range(int(m/2)+1):
+    ax3.plot(delta_v_rest[:,2*i], thresholds_ais[:,2*i] - thresholds_soma[:,2*i], color=colors[2*i])
+ax3.set_xlabel('$\Delta V$ (mV)')
+ax3.set_ylabel('$\Delta$ Threshold (mV)')
+ax3.set_ylim(-12.5, 7.5)
+ax3.set_xlim(-17.5, 2.5)
+ax3.legend(frameon=False, fontsize=8)
+
+ax3.text(-24.5, 7.5,'C', fontsize=14, weight='bold')
+
+# Panel D: threshold at the soma and AIS vs AIS position for different injected currents
+ax2 = subplot(224)
+for i in range(int(m/2)+1):
+    semilogx(starts/um, thresholds_ais[:,2*i], '-.', color=colors[2*i])
+    semilogx(starts/um, thresholds_soma[:,2*i], color=colors[2*i], label='%.0f pA' %inj_curr_label[2*i])
 ax2.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 ax2.xaxis.set_minor_formatter(FormatStrFormatter('%.0f'))
-#ax2.set_yticks([-75,-65,-55,-45,-35])
-#ax2.set_yticklabels(['-75','-65','-55','-45','-35'])
-ax2.set_ylim(-75, -40)
-ax2.set_xlabel('$x_{1/2}$ ($\mu$m)')
-ax2.set_ylabel('$V_a$ (mV)')
+ax2.set_yticks([-75,-65,-55,-45])
+ax2.set_yticklabels(['-75','-65','-55','-45'])
+ax2.set_ylim(-75, -45)
+#ax2.set_xlim(1,41)
+ax2.set_xlabel('$\Delta$ ($\mu$m)')
+ax2.set_ylabel('Threshold (mV)')
 ax2.legend(frameon=False, fontsize=8)
 
-ax2.text(9.5, -40,'B', fontsize=14, weight='bold')
+ax2.text(6.5, -45,'D', fontsize=14, weight='bold')
 
-subplots_adjust(top=0.88, bottom=0.29, wspace=0.4)
+tight_layout()
 
 show()
-
-
-
-
 
 
