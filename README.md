@@ -16,12 +16,12 @@ For Figure 3, electrophysiological data from Hu and Bean (2018)
 
 ## Passive properties
 
-* `figure_2.py`: We show in simulations the difference between the small soma situation (=sealed end) and
+* `figure_1.py`: We show in simulations the difference between the small soma situation (=sealed end) and
 the large soma situation (=killed end). The large soma situation is the starting point of
 resistive coupling theory.
-* `figure_3.py`: We show from Hu & Bean's data (2018) that cortical neurons follow resistive coupling theory.
+* `figure_2.py`: We show from Hu & Bean's data (2018) that cortical neurons follow resistive coupling theory.
 This requires downloading electrophysiological data [link to be added].
-* `figure_4.py`: We show that electrical properties are conserved with a power law scaling of axon diameter vs soma diameter. 
+* `figure_3.py`: We show that electrical properties are conserved with a power law scaling of axon diameter vs soma diameter. 
 We show with data from various sources in the literature that this is roughly the
 observed scaling. In other words, the geometry of neurons is consistent with resistive coupling theory.
 
@@ -32,13 +32,13 @@ In this part, we show that excitability changes due to the AIS are reported in t
 
 ### A simple model of spike initiation
 
-* `figure_5.py`: We present a simple biophysical model of spike initiation in the AIS, and illustrate how to use it.
+* `figure_4.py`: We present a simple biophysical model of spike initiation in the AIS, and illustrate how to use it.
 
 ### How to measure excitability?
 
-* `figure_6.py`: We show that the measure of excitability that best captures the effect of the axon initial segment is the somatic voltage threshold, 
+* `figure_5.py`: We show that the measure of excitability that best captures the effect of the axon initial segment is the somatic voltage threshold, 
 and not the current threshold or the voltage threshold at the AIS. It is possible to either run the simulations, 
-or only plot the figure based on previously saved results (`figure_6.npz`).
+or only plot the figure based on previously saved results (`figure_5.npz`).
 
 ## Relation between excitability and AIS geometry
 
@@ -49,32 +49,39 @@ We also show that it depends on whether the AIS is hyperpolarized (eg by Kv chan
 
 We show that either shifting a point AIS away from the soma or increasing the total Na conductance in the AIS decreases the voltage threshold.
 
-* ` figure_7.py`: We compare the theoretical threshold with the threshold measured in a simple model of spike initiation and in a simple biophysical model of an AP.
-It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_7.npz`).
+* ` figure_6.py`: We compare the theoretical threshold with the threshold measured in a simple model of spike initiation and in a simple biophysical model of an AP.
+It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_6.npz`).
 
 ### A spatially extended AIS
 
 We show that threshold variations can be separated in three independent contributions: 
 AIS length, AIS middle position and density of Nav channels in the AIS.
 
-* `figure_8.py`: Relation between threshold and AIS start position and length in the biophysical model, for a fixed Na conductance density in the AIS. 
+* `figure_7.py`: Relation between threshold and AIS start position and length in the biophysical model, for a fixed Na conductance density in the AIS. 
+It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_7.npz`).
+
+* `figure_8.py`: Effect of compressing the AIS around its middle position, for a fixed total Na conductance at the AIS. 
 It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_8.npz`).
 
-* `figure_9.py`: Effect of compressing the AIS around its middle position, for a fixed total Na conductance at the AIS. 
+* `figure_9.py`: Dependence of the voltage threshold on AIS length, AIS middle position and density of Nav channels in the AIS.
 It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_9.npz`).
-
-* `figure_10.py`: Dependence of the voltage threshold on AIS length, AIS middle position and density of Nav channels in the AIS.
-It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_10.npz`).
 
 ### Non-sodium axonal currents
     
 We show that if a strong hyperpolarizing current is present a the AIS, the threshold can increase when the AIS is shifted away from the soma.
 
-* `figure_11.py`: We measure the voltage threshold in the biophysical model when a hyperpolarizing conductance (Kv7-like conductance) 
+* `figure_10.py`: We measure the voltage threshold in the biophysical model when a hyperpolarizing conductance (Kv7-like conductance) 
 is added in the distal half of the AIS.
+It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_10.npz`).
 
-* `figure_12.py`: We compare the voltage threshold at the soma and at the AIS with the resting membrane potential at the soma and the AIS, 
+* `figure_11.py`: We compare the voltage threshold at the soma and at the AIS with the resting membrane potential at the soma and the AIS, 
 for different point AIS positions and injected current in the AIS.
+It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_11.npz`).
+
+### Role of axon morphology
+
+* `figure_12.py`: Effet of axon morphology on the relation between AIS position and excitability in the biophysical model.
+It is possible to either run the simulations, or only plot the figure based on previously saved results (`figure_12a.npz`, `figure_12b.npz`, `figure_12c.npz`, `figure_12d.npz`).
 
 ## Methods
 
